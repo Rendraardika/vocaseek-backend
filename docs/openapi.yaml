@@ -1,0 +1,767 @@
+openapi: 3.0.3
+info:
+  title: Vocaseek API
+  version: 1.1.0
+  description: |
+    Dokumentasi API untuk integrasi frontend Vocaseek.
+    Base URL lokal: `http://localhost:8000/api`
+    Bahasa response backend dapat dipilih lewat header `X-Locale: id` atau `X-Locale: en`.
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+tags:
+  - name: Public
+  - name: Auth
+  - name: Intern
+  - name: Company
+  - name: Talent Pool
+  - name: Admin
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: rendra@example.com
+        password:
+          type: string
+          example: password123
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        token:
+          type: string
+          example: 1|sanctum-token
+        role:
+          type: string
+          example: intern
+        user:
+          type: string
+          example: Rendra
+    StatusMessage:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operasi berhasil.
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: The given data was invalid.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    MeResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            user_id:
+              type: integer
+            nama:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+            notelp:
+              type: string
+            google_id:
+              type: string
+              nullable: true
+paths:
+  /landing-stats:
+    get:
+      tags: [Public]
+      summary: Statistik landing page
+      responses:
+        '200':
+          description: Statistik publik
+
+  /popular-vacancies:
+    get:
+      tags: [Public]
+      summary: Ambil lowongan aktif untuk landing page
+      responses:
+        '200':
+          description: Daftar lowongan publik
+
+  /partners:
+    get:
+      tags: [Public]
+      summary: Ambil semua partner aktif
+      description: |
+        Endpoint publik untuk daftar perusahaan/partner aktif.
+        Bisa dipakai oleh halaman intern atau halaman publik.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 12
+      responses:
+        '200':
+          description: Daftar partner aktif
+
+  /test:
+    get:
+      tags: [Public]
+      summary: Health check API
+      responses:
+        '200':
+          description: API aktif
+
+  /register:
+    post:
+      tags: [Auth]
+      summary: Registrasi user
+      description: |
+        `intern` memakai `application/json`.
+        `company` memakai `multipart/form-data` karena upload `loa_pdf` dan `akta_pdf`.
+        Akun `company` tidak langsung mendapat token dan harus menunggu approval super admin sebelum bisa login.
+      responses:
+        '201':
+          description: Registrasi berhasil
+        '422':
+          description: Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Login gagal
+        '403':
+          description: Company belum disetujui super admin
+
+  /auth/google:
+    get:
+      tags: [Auth]
+      summary: Mulai login Google via browser redirect
+      responses:
+        '302':
+          description: Redirect ke Google OAuth
+
+  /auth/google/callback:
+    get:
+      tags: [Auth]
+      summary: Callback Google OAuth
+      responses:
+        '302':
+          description: Redirect hasil login
+
+  /auth/google/token:
+    post:
+      tags: [Auth]
+      summary: Login Google via access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [access_token]
+              properties:
+                access_token:
+                  type: string
+      responses:
+        '200':
+          description: Login Google berhasil
+        '401':
+          description: Token tidak valid
+
+  /forgot-password:
+    post:
+      tags: [Auth]
+      summary: Kirim email reset password
+      responses:
+        '200':
+          description: Jika email terdaftar, tautan reset dikirim
+        '500':
+          description: Gagal kirim email
+
+  /forgot-password/validate-token:
+    post:
+      tags: [Auth]
+      summary: Validasi token reset password
+      responses:
+        '200':
+          description: Token valid
+        '400':
+          description: Token tidak valid atau kadaluarsa
+
+  /reset-password:
+    post:
+      tags: [Auth]
+      summary: Simpan password baru
+      responses:
+        '200':
+          description: Password berhasil diperbarui
+        '400':
+          description: Token reset tidak valid
+        '422':
+          description: Validasi gagal
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Ambil user login
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil user login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          description: Unauthorized
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Logout token aktif
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusMessage'
+
+  /intern/profile:
+    get:
+      tags: [Intern]
+      summary: Ambil profil intern
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil intern
+
+  /intern/test/questions:
+    get:
+      tags: [Intern]
+      summary: Ambil soal pre-test subjektif
+      description: |
+        Soal disediakan backend.
+        Setiap user hanya dapat menyelesaikan pre-test satu kali.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar soal pre-test
+        '403':
+          description: Profil belum lengkap atau test sudah selesai
+
+  /intern/update-profile:
+    put:
+      tags: [Intern]
+      summary: Update profil intern
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil diperbarui
+
+  /intern/start-test:
+    post:
+      tags: [Intern]
+      summary: Mulai pre-test
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Test dimulai
+        '403':
+          description: Profil belum lengkap atau test sudah selesai
+
+  /intern/submit-test:
+    post:
+      tags: [Intern]
+      summary: Submit jawaban pre-test
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tes berhasil dikirim
+        '422':
+          description: Jawaban tidak valid atau waktu habis
+
+  /intern/apply:
+    post:
+      tags: [Intern]
+      summary: Lamar lowongan
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lamaran berhasil terkirim
+        '403':
+          description: Profil atau tes belum selesai
+
+  /intern/applications:
+    get:
+      tags: [Intern]
+      summary: Daftar lamaran intern
+      description: Route ada, tetapi method controller belum ditemukan. Anggap belum siap dipakai.
+      security:
+        - bearerAuth: []
+      responses:
+        '501':
+          description: Belum diimplementasikan
+
+  /company/profile:
+    get:
+      tags: [Company]
+      summary: Ambil profil company
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil company
+
+  /company/profile/update:
+    post:
+      tags: [Company]
+      summary: Update profil company
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil diperbarui
+
+  /company/dashboard:
+    get:
+      tags: [Company]
+      summary: Ambil dashboard company
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistik dashboard
+
+  /company/jobs:
+    get:
+      tags: [Company]
+      summary: Daftar lowongan milik company
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar lowongan
+    post:
+      tags: [Company]
+      summary: Buat lowongan baru
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Lowongan berhasil dibuat
+        '403':
+          description: Company belum aktif
+
+  /company/jobs/{id}:
+    put:
+      tags: [Company]
+      summary: Update lowongan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lowongan berhasil diupdate
+    delete:
+      tags: [Company]
+      summary: Hapus lowongan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lowongan berhasil dihapus
+
+  /company/jobs/{jobId}/applicants:
+    get:
+      tags: [Company]
+      summary: Ambil pelamar per lowongan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Daftar pelamar
+
+  /company/applications/{id}/status:
+    put:
+      tags: [Company]
+      summary: Update status pelamar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status pelamar diperbarui
+
+  /company/talent/candidates:
+    get:
+      tags: [Talent Pool]
+      summary: Daftar kandidat company
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Kandidat dan statistik
+
+  /company/talent/candidates/{id}/detail:
+    get:
+      tags: [Talent Pool]
+      summary: Detail kandidat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail kandidat
+
+  /company/talent/candidates/manual:
+    post:
+      tags: [Talent Pool]
+      summary: Tambah kandidat manual
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Kandidat manual berhasil dibuat
+
+  /company/talent/candidates/{id}/status:
+    put:
+      tags: [Talent Pool]
+      summary: Update status kandidat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status kandidat diperbarui
+
+  /company/talent/selected:
+    get:
+      tags: [Talent Pool]
+      summary: Daftar kandidat terpilih
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Kandidat terpilih
+
+  /admin/overview:
+    get:
+      tags: [Admin]
+      summary: Dashboard admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Overview admin
+
+  /admin/profile:
+    get:
+      tags: [Admin]
+      summary: Profil admin login
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil admin
+
+  /admin/profile/update:
+    post:
+      tags: [Admin]
+      summary: Update profil admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil admin diperbarui
+
+  /admin/profile/change-password:
+    put:
+      tags: [Admin]
+      summary: Ganti password admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Password diperbarui
+
+  /admin/talents:
+    get:
+      tags: [Admin]
+      summary: Daftar talenta
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar talenta
+
+  /admin/talents/{id}:
+    delete:
+      tags: [Admin]
+      summary: Hapus talenta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Talenta dihapus
+
+  /admin/partners:
+    get:
+      tags: [Admin]
+      summary: Daftar partner
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar partner
+    post:
+      tags: [Admin]
+      summary: Tambah partner
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Partner ditambahkan
+
+  /admin/partners/{id}:
+    get:
+      tags: [Admin]
+      summary: Detail partner
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail partner
+    delete:
+      tags: [Admin]
+      summary: Hapus partner
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Partner dihapus
+
+  /admin/verification:
+    get:
+      tags: [Admin]
+      summary: Daftar verifikasi mitra
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar verifikasi
+
+  /admin/verification/{id}/review-status:
+    put:
+      tags: [Admin]
+      summary: Update status review
+      description: |
+        Endpoint ini menerima alias status agar frontend lebih fleksibel:
+        `pending`, `reviewed`, `approve`, `active`, `reject`, `rejected`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status review diperbarui
+
+  /admin/verification/{id}/detail:
+    get:
+      tags: [Admin]
+      summary: Detail verifikasi
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail verifikasi
+
+  /admin/verification/{id}/final:
+    post:
+      tags: [Admin]
+      summary: Verifikasi final mitra
+      description: |
+        Hanya super admin.
+        Payload dapat memakai `action=approve|reject` atau `status=approve|reject`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Verifikasi final diproses
+        '403':
+          description: Hanya super admin
+
+  /admin/users-management:
+    get:
+      tags: [Admin]
+      summary: Daftar admin internal
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User management list
+    post:
+      tags: [Admin]
+      summary: Tambah admin internal
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Admin ditambahkan
+
+  /admin/users-management/{id}/status:
+    put:
+      tags: [Admin]
+      summary: Update status admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status admin diperbarui
+
+  /admin/users-management/{id}:
+    delete:
+      tags: [Admin]
+      summary: Hapus admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Admin dihapus
+        '403':
+          description: Tidak boleh hapus akun sendiri
