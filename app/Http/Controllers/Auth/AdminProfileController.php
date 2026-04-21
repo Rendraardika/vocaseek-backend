@@ -11,6 +11,21 @@ use Illuminate\Validation\Rules;
 
 class AdminProfileController extends Controller
 {
+    private function assetFromPublicDisk(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        $normalizedPath = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($normalizedPath)) {
+            return null;
+        }
+
+        return asset('storage/' . $normalizedPath);
+    }
+
     private function normalizePasswordPayload(Request $request): void
     {
         $request->merge([
@@ -41,7 +56,7 @@ class AdminProfileController extends Controller
             'email' => $user->email,
             'email_address' => $user->email,
             'role' => $user->role,
-            'foto' => $user->foto ? asset('storage/' . ltrim($user->foto, '/')) : null,
+            'foto' => $this->assetFromPublicDisk($user->foto),
             'data' => [
                 'nama' => $user->nama,
                 'name' => $user->nama,
@@ -51,7 +66,7 @@ class AdminProfileController extends Controller
                 'notelp' => $user->notelp,
                 'id_karyawan' => 'VK-2024-' . str_pad($user->user_id, 3, '0', STR_PAD_LEFT),
                 'role_name' => $user->role === 'super_admin' ? 'Master Admin Platform' : 'Staff Admin Platform',
-                'foto' => $user->foto ? asset('storage/' . ltrim($user->foto, '/')) : null,
+                'foto' => $this->assetFromPublicDisk($user->foto),
                 'terdaftar_sejak' => optional($user->created_at)->format('M Y') ?? 'N/A',
                 'riwayat_aktivitas' => [
                     ['pesan' => 'Login Berhasil', 'waktu' => now()->format('H:i \W\I\B')],
@@ -121,7 +136,7 @@ class AdminProfileController extends Controller
                 'nama' => $user->nama,
                 'email' => $user->email,
                 'notelp' => $user->notelp,
-                'foto' => $user->foto ? asset('storage/' . ltrim($user->foto, '/')) : null,
+                'foto' => $this->assetFromPublicDisk($user->foto),
             ],
         ]);
     }

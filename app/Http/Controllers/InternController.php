@@ -1024,6 +1024,16 @@ class InternController extends Controller
 
     private function documentUrl(?string $path): ?string
     {
-        return $path ? asset('storage/' . ltrim($path, '/')) : null;
+        if (!$path) {
+            return null;
+        }
+
+        $normalizedPath = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($normalizedPath)) {
+            return null;
+        }
+
+        return asset('storage/' . $normalizedPath);
     }
 }

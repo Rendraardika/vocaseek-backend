@@ -13,6 +13,21 @@ use Illuminate\Support\Facades\DB;
 
 class CompanyController extends Controller
 {
+    private function assetFromPublicDisk(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        $normalizedPath = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($normalizedPath)) {
+            return null;
+        }
+
+        return asset('storage/' . $normalizedPath);
+    }
+
     private function normalizeJobPayload(Request $request): array
     {
         $validated = $request->validate([
@@ -75,13 +90,13 @@ class CompanyController extends Controller
                 'alamat_kantor_pusat' => $profile->alamat_kantor_pusat,
                 'nib'                 => $profile->nib,
                 'status_mitra'        => $profile->status_mitra,
-                'logo_url'            => $profile->logo_perusahaan ? asset('storage/' . $profile->logo_perusahaan) : null,
-                'banner_url'          => $profile->banner_perusahaan ? asset('storage/' . $profile->banner_perusahaan) : null,
+                'logo_url'            => $this->assetFromPublicDisk($profile->logo_perusahaan),
+                'banner_url'          => $this->assetFromPublicDisk($profile->banner_perusahaan),
                 'linkedin_url'        => $profile->linkedin_url,
                 'instagram_url'       => $profile->instagram_url,
                 'twitter_url'         => $profile->twitter_url,
-                'loa_url'             => $profile->loa_pdf ? asset('storage/' . $profile->loa_pdf) : null,
-                'akta_url'            => $profile->akta_pdf ? asset('storage/' . $profile->akta_pdf) : null,
+                'loa_url'             => $this->assetFromPublicDisk($profile->loa_pdf),
+                'akta_url'            => $this->assetFromPublicDisk($profile->akta_pdf),
                 'created_at'          => $profile->created_at->format('d M Y')
             ]
         ]);
@@ -305,10 +320,10 @@ class CompanyController extends Controller
                 'location' => $company->alamat_kantor_pusat,
                 'website_url' => $company->website_url,
                 'website' => $company->website_url,
-                'logo_url' => $company->logo_perusahaan ? asset('storage/'.$company->logo_perusahaan) : null,
-                'logo' => $company->logo_perusahaan ? asset('storage/'.$company->logo_perusahaan) : null,
-                'banner_url' => $company->banner_perusahaan ? asset('storage/'.$company->banner_perusahaan) : null,
-                'banner' => $company->banner_perusahaan ? asset('storage/'.$company->banner_perusahaan) : null,
+                'logo_url' => $this->assetFromPublicDisk($company->logo_perusahaan),
+                'logo' => $this->assetFromPublicDisk($company->logo_perusahaan),
+                'banner_url' => $this->assetFromPublicDisk($company->banner_perusahaan),
+                'banner' => $this->assetFromPublicDisk($company->banner_perusahaan),
                 'linkedin_url' => $company->linkedin_url,
                 'instagram_url' => $company->instagram_url,
                 'twitter_url' => $company->twitter_url,
@@ -318,7 +333,7 @@ class CompanyController extends Controller
                 'display' => [
                     'title' => $company->nama_perusahaan,
                     'subtitle' => $company->industri ?: ($company->alamat_kantor_pusat ?: 'Partner Vocaseek'),
-                    'image' => $company->logo_perusahaan ? asset('storage/'.$company->logo_perusahaan) : null,
+                    'image' => $this->assetFromPublicDisk($company->logo_perusahaan),
                     'meta' => [
                         'location' => $company->alamat_kantor_pusat,
                         'website' => $company->website_url,

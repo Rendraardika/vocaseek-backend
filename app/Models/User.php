@@ -16,6 +16,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasApiTokens, HasFactory, Notifiable;
 
     protected static ?bool $hasPreferredLocaleColumn = null;
+    protected static ?bool $hasEmailVerifiedAtColumn = null;
 
     protected $table = 'users';
     
@@ -121,6 +122,35 @@ HTML;
         return self::$hasPreferredLocaleColumn;
     }
 
+    public static function supportsEmailVerificationColumn(): bool
+    {
+        if (self::$hasEmailVerifiedAtColumn === null) {
+            self::$hasEmailVerifiedAtColumn = Schema::hasColumn('users', 'email_verified_at');
+        }
+
+        return self::$hasEmailVerifiedAtColumn;
+    }
+
+    public function hasVerifiedEmail(): bool
+    {
+        if (! self::supportsEmailVerificationColumn()) {
+            return true;
+        }
+
+        return ! is_null($this->email_verified_at);
+    }
+
+    public function markEmailAsVerified(): bool
+    {
+        if (! self::supportsEmailVerificationColumn()) {
+            return false;
+        }
+
+        return $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
+        ])->save();
+    }
+
     public function getResolvedLocale(): string
     {
         if (self::supportsPreferredLocale() && filled($this->preferred_locale)) {
@@ -132,6 +162,10 @@ HTML;
 
     public function sendEmailVerificationNotification(): void
     {
+        if (! self::supportsEmailVerificationColumn()) {
+            return;
+        }
+
         $this->notify(new VerifyEmailForSpa());
     }
 }

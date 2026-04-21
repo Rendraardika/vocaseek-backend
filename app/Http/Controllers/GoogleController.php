@@ -109,15 +109,20 @@ class GoogleController extends Controller
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if (!$user) {
-                $user = User::create([
+                $payload = [
                     'nama' => $googleUser->getName(),
                     'email' => $googleUser->getEmail(),
                     'google_id' => $googleUser->getId(),
                     'role' => 'intern',
                     'password' => bcrypt(Str::random(16)),
                     'notelp' => '-',
-                    'email_verified_at' => Carbon::now(),
-                ]);
+                ];
+
+                if (User::supportsEmailVerificationColumn()) {
+                    $payload['email_verified_at'] = Carbon::now();
+                }
+
+                $user = User::create($payload);
 
                 InternProfile::create([
                     'user_id' => $user->user_id,
@@ -130,7 +135,7 @@ class GoogleController extends Controller
                     $updates['google_id'] = $googleUser->getId();
                 }
 
-                if (! $user->email_verified_at) {
+                if (User::supportsEmailVerificationColumn() && ! $user->email_verified_at) {
                     $updates['email_verified_at'] = Carbon::now();
                 }
 

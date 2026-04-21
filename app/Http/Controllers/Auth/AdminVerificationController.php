@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\CompanyProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AdminVerificationController extends Controller
 {
@@ -207,7 +208,13 @@ class AdminVerificationController extends Controller
             return null;
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        $normalizedPath = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($normalizedPath)) {
+            return null;
+        }
+
+        return asset('storage/' . $normalizedPath);
     }
 
     private function normalizeVerificationInput(?string $value): ?string

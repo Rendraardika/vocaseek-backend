@@ -320,7 +320,13 @@ class AdminTalentController extends Controller
             return null;
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        $normalizedPath = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($normalizedPath)) {
+            return null;
+        }
+
+        return asset('storage/' . $normalizedPath);
     }
 
     private function transformDocumentItem(array $item): array

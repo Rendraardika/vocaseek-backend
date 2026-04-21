@@ -17,13 +17,13 @@ class LandingPageSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         Job::truncate();
         Category::truncate();
-        User::where('email', 'admin@vocaseek.com')->delete();
+        User::where('email', 'jobs@vocaseek.com')->delete();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // 2. Buat User Admin (Sebagai pemilik lowongan)
         $user = User::create([
             'nama' => 'Admin Vocaseek',
-            'email' => 'admin@vocaseek.com',
+            'email' => 'jobs@vocaseek.com',
             'password' => Hash::make('password'),
             'role' => 'company'
         ]);
