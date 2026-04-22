@@ -40,6 +40,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | URL publik ini dipakai untuk tautan yang dikirim ke email, misalnya
+    | invitation admin, reset password, dan verifikasi email. Jika kosong,
+    | sistem akan fallback ke FRONTEND_URL.
+    |
+    */
+
+    'public_frontend_url' => env('PUBLIC_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:3000')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

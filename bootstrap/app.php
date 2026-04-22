@@ -38,6 +38,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/register',
             'api/login',
+            'api/email/verification-notification',
+            'api/admin/invitations/accept',
+            'api/admin/users/invite',
+            'api/admin/invitations/resend',
+            'api/admin/invitations/cancel',
             'api/forgot-password',
             'api/forgot-password/validate-token',
             'api/reset-password',

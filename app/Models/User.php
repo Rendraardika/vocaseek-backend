@@ -29,6 +29,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'password',
         'role',
+        'status',
+        'invited_by',
         'notelp',
         'foto',
         'preferred_locale',
@@ -75,9 +77,24 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(JobApplication::class, 'user_id', 'user_id');
     }
 
+    public function adminInvitations()
+    {
+        return $this->hasMany(AdminInvitation::class, 'user_id', 'user_id');
+    }
+
+    public function latestAdminInvitation()
+    {
+        return $this->hasOne(AdminInvitation::class, 'user_id', 'user_id')->latestOfMany();
+    }
+
+    public function inviter()
+    {
+        return $this->belongsTo(self::class, 'invited_by', 'user_id');
+    }
+
     public function sendPasswordResetNotification($token): void
     {
-        $resetUrl = rtrim(config('app.frontend_url'), '/')
+        $resetUrl = rtrim(config('app.public_frontend_url', config('app.frontend_url')), '/')
             .'/reset-password?token='.$token.'&email='.urlencode($this->getEmailForPasswordReset());
 
         $html = <<<HTML

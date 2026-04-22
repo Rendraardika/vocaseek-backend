@@ -27,6 +27,32 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
+        $existingUser = User::where('email', $request->email)->first();
+
+        if (! $existingUser) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'email_not_registered',
+                'message' => 'Silahkan register terlebih dahulu.',
+            ], 404);
+        }
+
+        if ($existingUser?->status === 'pending_invitation') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'invitation_pending',
+                'message' => 'Akun admin ini belum diaktifkan. Silakan buka tautan aktivasi dari email undangan Anda.',
+            ], 403);
+        }
+
+        if ($existingUser?->status === 'disabled') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'account_disabled',
+                'message' => 'Akun Anda sedang dinonaktifkan. Hubungi admin master untuk bantuan lebih lanjut.',
+            ], 403);
+        }
+
         $guard = $this->webGuard();
 
         if ($guard->check()) {

@@ -12,7 +12,7 @@ class ApiEmailVerificationController extends Controller
 {
     public function verify(Request $request, int $id, string $hash): RedirectResponse
     {
-        $frontendUrl = rtrim(config('app.frontend_url'), '/');
+        $frontendUrl = rtrim(config('app.public_frontend_url', config('app.frontend_url')), '/');
         $user = User::find($id);
 
         if (! $user || ! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {

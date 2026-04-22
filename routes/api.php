@@ -20,6 +20,7 @@ use App\Http\Controllers\TalentController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminTalentController;
 use App\Http\Controllers\Auth\AdminPartnerController;
+use App\Http\Controllers\Auth\AdminInvitationController;
 use App\Http\Controllers\Auth\AdminUserController;
 use App\Http\Controllers\Auth\AdminVerificationController;
 use App\Http\Controllers\Auth\AdminProfileController;
@@ -32,6 +33,10 @@ Route::get('/partners', [CompanyController::class, 'getPublicPartners']);
 // Auth Utama
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/admin/invitations/verify', [AdminInvitationController::class, 'verify'])
+    ->middleware('throttle:12,1');
+Route::post('/admin/invitations/accept', [AdminInvitationController::class, 'accept'])
+    ->middleware('throttle:12,1');
 Route::get('/email/verify/{id}/{hash}', [ApiEmailVerificationController::class, 'verify'])
     ->middleware(['signed', 'throttle:6,1'])
     ->name('api.verification.verify');
@@ -140,9 +145,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('role:super_admin')->group(function () {
             Route::prefix('users-management')->group(function () {
                 Route::get('/', [AdminUserController::class, 'index']);      
-                Route::post('/', [AdminUserController::class, 'store']);
                 Route::put('/{id}/status', [AdminUserController::class, 'updateStatus']); 
                 Route::delete('/{id}', [AdminUserController::class, 'destroy']);
+            });
+
+            Route::prefix('users')->group(function () {
+                Route::post('/invite', [AdminUserController::class, 'invite']);
+            });
+
+            Route::prefix('invitations')->group(function () {
+                Route::post('/resend', [AdminInvitationController::class, 'resend']);
+                Route::post('/cancel', [AdminInvitationController::class, 'cancel']);
             });
 
             Route::post('/partners', [AdminPartnerController::class, 'store']); 
