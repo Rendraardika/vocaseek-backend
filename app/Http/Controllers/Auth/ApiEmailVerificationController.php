@@ -37,7 +37,7 @@ class ApiEmailVerificationController extends Controller
     public function resend(Request $request)
     {
         $validated = $request->validate([
-            'email' => ['required', 'email:rfc,dns'],
+            'email' => ['required', 'email:rfc'],
         ]);
 
         $user = User::where('email', $validated['email'])->first();

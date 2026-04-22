@@ -38,10 +38,10 @@ Route::get('/admin/invitations/verify', [AdminInvitationController::class, 'veri
 Route::post('/admin/invitations/accept', [AdminInvitationController::class, 'accept'])
     ->middleware('throttle:12,1');
 Route::get('/email/verify/{id}/{hash}', [ApiEmailVerificationController::class, 'verify'])
-    ->middleware(['signed', 'throttle:6,1'])
+    ->middleware('throttle:20,1')
     ->name('api.verification.verify');
 Route::post('/email/verification-notification', [ApiEmailVerificationController::class, 'resend'])
-    ->middleware('throttle:6,1');
+    ->middleware('throttle:10,1');
 
 // Social Auth & Passwords
 Route::get('/auth/google', function () {

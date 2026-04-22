@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -128,7 +127,7 @@ class AuthController extends Controller
         // Validasi dasar untuk semua role
         $rules = [
             'nama'     => 'required|string|max:100',
-            'email'    => 'required|email:rfc,dns|unique:users,email',
+            'email'    => 'required|email:rfc|unique:users,email',
             'password' => 'required|min:8|confirmed',
             'notelp'   => 'required|string|max:20',
             'role'     => 'required|in:intern,company,super_admin,staff_admin',
@@ -186,8 +185,15 @@ class AuthController extends Controller
 
                 return $user;
             });
-
-            event(new Registered($user));
+            if (method_exists($request, 'afterResponse')) {
+                $request->afterResponse(function () use ($user) {
+                    if (! $user->hasVerifiedEmail()) {
+                        $user->sendEmailVerificationNotification();
+                    }
+                });
+            } elseif (! $user->hasVerifiedEmail()) {
+                $user->sendEmailVerificationNotification();
+            }
 
             if ($user->role === 'company') {
                 return response()->json([
