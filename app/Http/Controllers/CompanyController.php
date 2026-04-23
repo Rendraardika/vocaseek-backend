@@ -256,10 +256,19 @@ class CompanyController extends Controller
     
     public function getPublicStats()
     {
+        $activeJobsQuery = Lowongan::query()
+            ->where('status', 'ACTIVE')
+            ->whereHas('companyProfile', function ($query) {
+                $query->where('status_mitra', 'active');
+            });
+
         return response()->json(['status' => 'success', 'data' => [
-            'live_jobs'  => Lowongan::where('status', 'ACTIVE')->count(),
+            'live_jobs'  => (clone $activeJobsQuery)->count(),
             'companies'  => CompanyProfile::where('status_mitra', 'active')->count(),
             'candidates' => User::where('role', 'intern')->count(),
+            'new_jobs'   => (clone $activeJobsQuery)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->count(),
         ]]);
     }
 
