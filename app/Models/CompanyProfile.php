@@ -19,6 +19,8 @@ class CompanyProfile extends Model
         'ukuran_perusahaan',
         'website_url',
         'deskripsi',
+        'visi',
+        'misi',
         'notelp',
         'alamat_kantor_pusat',
         'nib',
