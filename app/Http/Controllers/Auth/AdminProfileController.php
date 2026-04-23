@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules;
+use App\Support\PasswordRules;
 
 class AdminProfileController extends Controller
 {
@@ -83,7 +83,9 @@ class AdminProfileController extends Controller
 
         $request->validate([
             'current_password' => ['required', 'current_password'], 
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => array_merge(['required', 'confirmed'], PasswordRules::strong()),
+        ], [
+            'password.regex' => PasswordRules::message(),
         ]);
 
         $user = auth()->user();

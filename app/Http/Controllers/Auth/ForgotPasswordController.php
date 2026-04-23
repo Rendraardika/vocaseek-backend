@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use App\Support\PasswordRules;
 
 class ForgotPasswordController extends Controller
 {
@@ -34,7 +35,9 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'token'    => 'required',
             'email'    => 'required|email|exists:users,email',
-            'password' => 'required|min:8|confirmed',
+            'password' => array_merge(['required', 'confirmed'], PasswordRules::strong()),
+        ], [
+            'password.regex' => PasswordRules::message(),
         ]);
 
         $status = Password::reset(

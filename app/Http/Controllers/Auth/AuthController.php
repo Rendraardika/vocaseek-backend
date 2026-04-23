@@ -13,6 +13,7 @@ use App\Models\InternProfile;
 use App\Models\CompanyProfile;
 use App\Models\PendingRegistration;
 use App\Notifications\VerifyPendingRegistrationForSpa;
+use App\Support\PasswordRules;
 use Illuminate\Contracts\Auth\StatefulGuard;
 
 class AuthController extends Controller
@@ -141,7 +142,7 @@ class AuthController extends Controller
         $rules = [
             'nama'     => 'required|string|max:100',
             'email'    => 'required|email:rfc|unique:users,email',
-            'password' => 'required|min:8|confirmed',
+            'password' => array_merge(['required', 'confirmed'], PasswordRules::strong()),
             'notelp'   => ['required', 'string', 'max:20', 'regex:/^\+?[0-9]+$/'],
             'role'     => 'required|in:intern,company,super_admin,staff_admin',
         ];
@@ -154,7 +155,9 @@ class AuthController extends Controller
             $rules['akta_pdf'] = 'required|mimes:pdf|max:5120';
         }
 
-        $request->validate($rules);
+        $request->validate($rules, [
+            'password.regex' => PasswordRules::message(),
+        ]);
 
         try {
             $pendingRegistration = DB::transaction(function () use ($request) {
