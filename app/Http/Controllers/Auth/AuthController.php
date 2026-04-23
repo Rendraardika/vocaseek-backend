@@ -6,9 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\InternProfile;
 use App\Models\CompanyProfile;
+use App\Models\PendingRegistration;
+use App\Notifications\VerifyPendingRegistrationForSpa;
 use Illuminate\Contracts\Auth\StatefulGuard;
 
 class AuthController extends Controller
@@ -27,8 +31,17 @@ class AuthController extends Controller
         ]);
 
         $existingUser = User::where('email', $request->email)->first();
+        $pendingRegistration = PendingRegistration::where('email', $request->email)->first();
 
         if (! $existingUser) {
+            if ($pendingRegistration) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 'email_pending_verification',
+                    'message' => 'Akun Anda belum aktif. Silakan cek email lalu klik link verifikasi terlebih dahulu.',
+                ], 403);
+            }
+
             return response()->json([
                 'status' => 'error',
                 'code' => 'email_not_registered',
@@ -144,75 +157,88 @@ class AuthController extends Controller
         $request->validate($rules);
 
         try {
-            $user = DB::transaction(function () use ($request) {
-                $userData = [
-                    'nama'     => $request->nama,
-                    'email'    => $request->email,
-                    'password' => $request->password,
-                    'role'     => $request->role,
-                    'notelp'   => $request->notelp,
-                ];
+            $pendingRegistration = DB::transaction(function () use ($request) {
+                $pendingRegistration = PendingRegistration::where('email', $request->email)->first();
 
-                if (User::supportsPreferredLocale()) {
-                    $userData['preferred_locale'] = app()->getLocale();
+                if ($pendingRegistration && $pendingRegistration->role === 'company' && $request->role !== 'company') {
+                    $oldPayload = $pendingRegistration->company_payload ?? [];
+
+                    foreach ([$oldPayload['loa_pdf'] ?? null, $oldPayload['akta_pdf'] ?? null] as $oldFile) {
+                        if ($oldFile) {
+                            Storage::disk('public')->delete($oldFile);
+                        }
+                    }
                 }
 
-                // Simpan ke tabel users
-                $user = User::create($userData);
+                if ($pendingRegistration && ($pendingRegistration->role !== 'company' || $request->role !== 'company')) {
+                    $pendingRegistration->company_payload = null;
+                }
+
+                $companyPayload = null;
 
                 if ($request->role === 'company') {
-                    // Simpan file ke storage/public/company/documents
-                    $loaPath  = $request->file('loa_pdf')->store('company/documents', 'public');
-                    $aktaPath = $request->file('akta_pdf')->store('company/documents', 'public');
+                    $oldPayload = $pendingRegistration?->company_payload ?? [];
 
-                    // Simpan ke tabel company_profile sesuai screenshot HeidiSQL
-                    CompanyProfile::create([
-                        'user_id'         => $user->user_id, 
+                    $loaPath = $request->file('loa_pdf')->store('company/documents/pending', 'public');
+                    $aktaPath = $request->file('akta_pdf')->store('company/documents/pending', 'public');
+
+                    foreach ([$oldPayload['loa_pdf'] ?? null, $oldPayload['akta_pdf'] ?? null] as $oldFile) {
+                        if ($oldFile && $oldFile !== $loaPath && $oldFile !== $aktaPath) {
+                            Storage::disk('public')->delete($oldFile);
+                        }
+                    }
+
+                    $companyPayload = [
                         'nama_perusahaan' => $request->nama_perusahaan,
-                        'notelp'          => $request->notelp,
-                        'nib'             => $request->nib,
-                        'loa_pdf'         => $loaPath,
-                        'akta_pdf'        => $aktaPath,
-                        'status_mitra'    => 'pending', // Sesuai kolom di DB Abang
-                    ]);
-                } elseif ($request->role === 'intern') {
-                    // Buat profil intern kosong
-                    InternProfile::create([
-                        'user_id' => $user->user_id,
-                        'is_profile_complete' => 0 // Sesuai tipe TINYINT di DB
-                    ]);
+                        'notelp' => $request->notelp,
+                        'nib' => $request->nib,
+                        'loa_pdf' => $loaPath,
+                        'akta_pdf' => $aktaPath,
+                        'status_mitra' => 'pending',
+                    ];
                 }
 
-                return $user;
+                return PendingRegistration::updateOrCreate(
+                    ['email' => $request->email],
+                    [
+                        'nama' => $request->nama,
+                        'password' => $request->password,
+                        'role' => $request->role,
+                        'notelp' => $request->notelp,
+                        'preferred_locale' => User::supportsPreferredLocale() ? app()->getLocale() : null,
+                        'company_payload' => $companyPayload,
+                    ]
+                );
             });
+
             if (method_exists($request, 'afterResponse')) {
-                $request->afterResponse(function () use ($user) {
-                    if (! $user->hasVerifiedEmail()) {
-                        $user->sendEmailVerificationNotification();
-                    }
+                $request->afterResponse(function () use ($pendingRegistration) {
+                    Notification::route('mail', $pendingRegistration->email)
+                        ->notify(new VerifyPendingRegistrationForSpa($pendingRegistration));
                 });
-            } elseif (! $user->hasVerifiedEmail()) {
-                $user->sendEmailVerificationNotification();
+            } else {
+                Notification::route('mail', $pendingRegistration->email)
+                    ->notify(new VerifyPendingRegistrationForSpa($pendingRegistration));
             }
 
-            if ($user->role === 'company') {
+            if ($pendingRegistration->role === 'company') {
                 return response()->json([
                     'status'  => 'success',
-                    'message' => 'Registrasi company berhasil. Silakan cek email untuk verifikasi akun. Setelah email terverifikasi, akun tetap harus menunggu persetujuan mitra sebelum bisa login.',
-                    'user'    => $user->nama,
-                    'role'    => $user->role,
-                    'email'   => $user->email,
-                    'locale'  => $user->getResolvedLocale(),
+                    'message' => 'Registrasi company berhasil. Data Anda akan dibuat setelah email diverifikasi. Setelah itu akun tetap harus menunggu persetujuan mitra sebelum bisa login.',
+                    'user'    => $pendingRegistration->nama,
+                    'role'    => $pendingRegistration->role,
+                    'email'   => $pendingRegistration->email,
+                    'locale'  => $pendingRegistration->preferred_locale ?? app()->getLocale(),
                 ], 201);
             }
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Registrasi berhasil. Kami sudah mengirim link verifikasi ke email Anda.',
-                'user'    => $user->nama,
-                'role'    => $user->role,
-                'email'   => $user->email,
-                'locale'  => $user->getResolvedLocale(),
+                'message' => 'Registrasi berhasil. Akun Anda akan dibuat setelah link verifikasi di email diklik.',
+                'user'    => $pendingRegistration->nama,
+                'role'    => $pendingRegistration->role,
+                'email'   => $pendingRegistration->email,
+                'locale'  => $pendingRegistration->preferred_locale ?? app()->getLocale(),
             ], 201);
 
         } catch (\Exception $e) {

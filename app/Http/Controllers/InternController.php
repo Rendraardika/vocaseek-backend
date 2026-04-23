@@ -287,6 +287,9 @@ class InternController extends Controller
             'ktp_pdf' => 'nullable|mimes:pdf|max:5120',
             'transkrip_nilai_pdf' => 'nullable|mimes:pdf|max:5120',
             'ipk'            => 'nullable|numeric|between:0,4.00',
+            'nama'           => 'nullable|string|max:100',
+            'email'          => 'nullable|email:rfc|unique:users,email,' . $user->user_id . ',user_id',
+            'notelp'         => 'nullable|string|max:20',
         ]);
 
         DB::transaction(function () use (
@@ -373,6 +376,25 @@ class InternController extends Controller
             ]);
             $profileData['tanggal_lahir'] = $this->normalizeDateValue($request->input('tanggal_lahir'));
             $profile->fill($profileData);
+
+            $userUpdates = [];
+
+            if ($request->filled('nama')) {
+                $userUpdates['nama'] = trim((string) $request->input('nama'));
+            }
+
+            if ($request->filled('email')) {
+                $userUpdates['email'] = trim((string) $request->input('email'));
+            }
+
+            if ($request->filled('notelp')) {
+                $userUpdates['notelp'] = trim((string) $request->input('notelp'));
+            }
+
+            if ($userUpdates !== []) {
+                $user->fill($userUpdates);
+                $user->save();
+            }
 
             if ($profile->foto && $profile->cv_pdf && $profile->universitas) {
                 $profile->is_profile_complete = 1;

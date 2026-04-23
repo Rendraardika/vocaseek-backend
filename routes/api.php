@@ -40,6 +40,9 @@ Route::post('/admin/invitations/accept', [AdminInvitationController::class, 'acc
 Route::get('/email/verify/{id}/{hash}', [ApiEmailVerificationController::class, 'verify'])
     ->middleware('throttle:20,1')
     ->name('api.verification.verify');
+Route::get('/email/pending-verify/{id}/{hash}', [ApiEmailVerificationController::class, 'verifyPending'])
+    ->middleware('throttle:20,1')
+    ->name('api.pending-registration.verify');
 Route::post('/email/verification-notification', [ApiEmailVerificationController::class, 'resend'])
     ->middleware('throttle:10,1');
 

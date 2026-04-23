@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('admin-invitations:prune')->daily();
+Schedule::command('pending-registrations:prune')->hourly();

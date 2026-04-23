@@ -268,8 +268,10 @@ class CompanyController extends Controller
         
         $jobs = Lowongan::with('companyProfile')
             ->where('status', 'ACTIVE')
+            ->whereHas('companyProfile', function ($query) {
+                $query->where('status_mitra', 'active');
+            })
             ->latest()
-            ->take(6)
             ->get();
 
         return response()->json(['status' => 'success', 'data' => $jobs]);
