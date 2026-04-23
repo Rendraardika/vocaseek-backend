@@ -35,7 +35,7 @@ class InviteAdminUserRequest extends FormRequest
                     }
                 },
             ],
-            'notelp' => ['nullable', 'string', 'max:20'],
+            'notelp' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9]+$/'],
             'role' => ['required', Rule::in(['staff_admin'])],
         ];
     }
@@ -44,6 +44,7 @@ class InviteAdminUserRequest extends FormRequest
     {
         return [
             'email.unique' => 'Email sudah terdaftar sebagai admin internal.',
+            'notelp.regex' => 'Nomor telepon hanya boleh berisi angka.',
         ];
     }
 }
