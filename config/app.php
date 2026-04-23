@@ -53,6 +53,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin Invitation Cleanup Days
+    |--------------------------------------------------------------------------
+    |
+    | Invitation admin yang expired atau dibatalkan akan dibersihkan otomatis
+    | setelah melewati masa retensi ini.
+    |
+    */
+
+    'admin_invitation_cleanup_days' => (int) env('ADMIN_INVITATION_CLEANUP_DAYS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

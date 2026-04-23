@@ -16,18 +16,8 @@ class AdminInvitationService
     public function invite(array $payload, User $inviter, ?string $frontendBaseUrl = null): array
     {
         return DB::transaction(function () use ($payload, $inviter, $frontendBaseUrl) {
-            $user = User::create([
-                'nama' => $payload['nama'],
-                'email' => $payload['email'],
-                'notelp' => $payload['notelp'] ?? null,
-                'role' => $payload['role'],
-                'status' => 'pending_invitation',
-                'invited_by' => $inviter->user_id,
-                'password' => null,
-            ]);
-
             [$invitation, $plainToken, $activationUrl] = $this->createInvitationRecord(
-                $user,
+                null,
                 $payload,
                 $inviter,
                 $frontendBaseUrl,
@@ -35,7 +25,7 @@ class AdminInvitationService
 
             $this->sendInvitationEmail($invitation, $activationUrl);
 
-            return [$user, $invitation, $activationUrl];
+            return [null, $invitation, $activationUrl];
         });
     }
 
@@ -77,15 +67,31 @@ class AdminInvitationService
             $user = $invitation->user;
 
             if (!$user) {
-                throw ValidationException::withMessages([
-                    'token' => 'Undangan admin tidak terkait dengan akun yang valid.',
+                $existingUser = User::query()
+                    ->where('email', $invitation->email)
+                    ->first();
+
+                if ($existingUser) {
+                    throw ValidationException::withMessages([
+                        'token' => 'Email undangan sudah terdaftar di sistem. Silakan hubungi admin master.',
+                    ]);
+                }
+
+                $user = User::create([
+                    'nama' => $invitation->name,
+                    'email' => $invitation->email,
+                    'password' => $password,
+                    'role' => $invitation->role,
+                    'status' => 'active',
+                    'invited_by' => $invitation->invited_by,
+                    'notelp' => $invitation->phone,
+                ]);
+            } else {
+                $user->forceFill([
+                    'password' => $password,
+                    'status' => 'active',
                 ]);
             }
-
-            $user->forceFill([
-                'password' => $password,
-                'status' => 'active',
-            ]);
 
             if (Schema::hasColumn('users', 'email_verified_at')) {
                 $user->email_verified_at = now();
@@ -94,11 +100,12 @@ class AdminInvitationService
             $user->save();
 
             $invitation->forceFill([
+                'user_id' => $user->user_id,
                 'used_at' => now(),
             ])->save();
 
             AdminInvitation::query()
-                ->where('user_id', $user->user_id)
+                ->where('email', $invitation->email)
                 ->where('id', '!=', $invitation->id)
                 ->whereNull('used_at')
                 ->whereNull('cancelled_at')
@@ -118,7 +125,7 @@ class AdminInvitationService
 
         return DB::transaction(function () use ($invitation, $inviter, $frontendBaseUrl) {
             AdminInvitation::query()
-                ->where('user_id', $invitation->user_id)
+                ->where('email', $invitation->email)
                 ->whereNull('used_at')
                 ->whereNull('cancelled_at')
                 ->update(['cancelled_at' => now()]);

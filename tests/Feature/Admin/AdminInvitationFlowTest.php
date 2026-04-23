@@ -34,10 +34,8 @@ class AdminInvitationFlowTest extends TestCase
             ->assertJsonPath('status', 'success')
             ->assertJsonPath('data.email', 'staff@vocaseek.com');
 
-        $this->assertDatabaseHas('users', [
+        $this->assertDatabaseMissing('users', [
             'email' => 'staff@vocaseek.com',
-            'role' => 'staff_admin',
-            'status' => 'pending_invitation',
         ]);
 
         $invitation = AdminInvitation::where('email', 'staff@vocaseek.com')->first();
@@ -97,7 +95,7 @@ class AdminInvitationFlowTest extends TestCase
     public function test_accept_invitation_success(): void
     {
         $plainToken = 'accept-token-1234567890accept-token-1234567890';
-        $user = $this->createPendingInvitation($plainToken)->user;
+        $invitation = $this->createPendingInvitation($plainToken);
 
         $response = $this->postJson('/api/admin/invitations/accept', [
             'token' => $plainToken,
@@ -109,8 +107,9 @@ class AdminInvitationFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'success');
 
-        $user->refresh();
+        $user = User::where('email', 'staff@vocaseek.com')->first();
 
+        $this->assertNotNull($user);
         $this->assertSame('active', $user->status);
         $this->assertTrue(Hash::check('PasswordBaru123!', $user->password));
         $this->assertDatabaseHas('admin_invitations', [
@@ -174,10 +173,9 @@ class AdminInvitationFlowTest extends TestCase
             ->assertJsonPath('status', 'success');
 
         $invitation->refresh();
-        $invitation->user->refresh();
 
         $this->assertNotNull($invitation->cancelled_at);
-        $this->assertSame('disabled', $invitation->user->status);
+        $this->assertNull($invitation->user);
     }
 
     private function createSuperAdmin(): User
@@ -196,21 +194,11 @@ class AdminInvitationFlowTest extends TestCase
     {
         $superAdmin = $overrides['invited_by'] ?? $this->createSuperAdmin()->user_id;
 
-        $user = User::create([
-            'nama' => 'Staff Admin',
-            'email' => $overrides['email'] ?? 'staff@vocaseek.com',
-            'password' => null,
-            'role' => 'staff_admin',
-            'status' => 'pending_invitation',
-            'invited_by' => $superAdmin,
-            'notelp' => '08123456789',
-        ]);
-
         return AdminInvitation::create([
-            'user_id' => $user->user_id,
-            'name' => $user->nama,
-            'email' => $user->email,
-            'phone' => $user->notelp,
+            'user_id' => $overrides['user_id'] ?? null,
+            'name' => $overrides['name'] ?? 'Staff Admin',
+            'email' => $overrides['email'] ?? 'staff@vocaseek.com',
+            'phone' => $overrides['phone'] ?? '08123456789',
             'role' => 'staff_admin',
             'token_hash' => hash('sha256', $plainToken),
             'expires_at' => $overrides['expires_at'] ?? now()->addDay(),
