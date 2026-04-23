@@ -142,7 +142,7 @@ class AuthController extends Controller
             'nama'     => 'required|string|max:100',
             'email'    => 'required|email:rfc|unique:users,email',
             'password' => 'required|min:8|confirmed',
-            'notelp'   => 'required|string|max:20',
+            'notelp'   => ['required', 'string', 'max:20', 'regex:/^\+?[0-9]+$/'],
             'role'     => 'required|in:intern,company,super_admin,staff_admin',
         ];
 
