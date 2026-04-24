@@ -63,6 +63,8 @@ Route::get('/docs/api', function () {
     return view('api-docs');
 })->name('docs.api');
 
+Route::redirect('/docs', '/docs/swagger');
+
 Route::get('/docs/swagger', function () {
     return view('swagger-ui');
 })->name('docs.swagger');

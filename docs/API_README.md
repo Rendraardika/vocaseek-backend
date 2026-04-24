@@ -4,8 +4,10 @@ Dokumen ini dibuat untuk membantu tim frontend memahami endpoint backend Vocasee
 
 ## Base URL
 
-- API lokal: `http://localhost:8000/api`
+- API lokal default: `http://localhost:8000/api`
 - Frontend lokal saat ini: `http://localhost:5173`
+- Swagger UI: `/docs` atau `/docs/swagger`
+- OpenAPI raw: `/docs/openapi.yaml`
 
 ## Format Umum
 
@@ -357,15 +359,19 @@ Butuh bearer token. Beberapa endpoint hanya boleh diakses `super_admin`, sebagia
 - `GET /api/admin/verification/{id}/detail`
 - `POST /api/admin/verification/{id}/final`
 - `GET /api/admin/users-management`
-- `POST /api/admin/users-management`
 - `PUT /api/admin/users-management/{id}/status`
 - `DELETE /api/admin/users-management/{id}`
+- `POST /api/admin/users/invite`
+- `GET /api/admin/invitations/verify`
+- `POST /api/admin/invitations/accept`
+- `POST /api/admin/invitations/resend`
+- `POST /api/admin/invitations/cancel`
 
 ## Catatan Integrasi Penting
 
 Ada beberapa hal yang perlu diketahui frontend sejak awal:
 
-- Route `GET /api/intern/applications` ada di `routes/api.php`, tetapi method `getMyApplications()` belum ditemukan di `InternController`. Jadi endpoint ini sebaiknya dianggap belum siap.
+- Route `GET /api/intern/applications` sudah tersedia dan mengembalikan daftar lamaran user yang sedang login.
 - Register `company` sekarang tidak mengembalikan token. Frontend harus menampilkan pesan menunggu approval super admin.
 - Login `company` hanya bisa berhasil jika `status_mitra = active`.
 - Endpoint verifikasi admin sekarang menerima alias input berikut:
@@ -383,11 +389,11 @@ Ada beberapa hal yang perlu diketahui frontend sejak awal:
 
 ## File Rujukan
 
-- Spesifikasi OpenAPI: [openapi.yaml](/c:/laragon/www/VOCASEEK/vocaseek/docs/openapi.yaml)
-- Route API: [api.php](/c:/laragon/www/VOCASEEK/vocaseek/routes/api.php)
-- Auth controller: [AuthController.php](/c:/laragon/www/VOCASEEK/vocaseek/app/Http/Controllers/Auth/AuthController.php)
-- Google controller: [GoogleController.php](/c:/laragon/www/VOCASEEK/vocaseek/app/Http/Controllers/GoogleController.php)
-- Forgot password controller: [ForgotPasswordController.php](/c:/laragon/www/VOCASEEK/vocaseek/app/Http/Controllers/ForgotPasswordController.php)
+- Spesifikasi OpenAPI: [openapi.yaml](/c:/laragon/www/pocaseek/backend/docs/openapi.yaml)
+- Route API: [api.php](/c:/laragon/www/pocaseek/backend/routes/api.php)
+- Auth controller: [AuthController.php](/c:/laragon/www/pocaseek/backend/app/Http/Controllers/Auth/AuthController.php)
+- Google controller: [GoogleController.php](/c:/laragon/www/pocaseek/backend/app/Http/Controllers/GoogleController.php)
+- Forgot password controller: [ForgotPasswordController.php](/c:/laragon/www/pocaseek/backend/app/Http/Controllers/ForgotPasswordController.php)
 
 ## Saran Pakai Untuk Frontend
 

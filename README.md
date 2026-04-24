@@ -9,11 +9,12 @@
 
 ## Vocaseek Docs
 
+- Swagger shortcut: `/docs`
 - Browser docs page: `/docs/api`
 - Swagger UI page: `/docs/swagger`
-- API README: [docs/API_README.md](/c:/laragon/www/VOCASEEK/vocaseek/docs/API_README.md)
-- OpenAPI spec: [docs/openapi.yaml](/c:/laragon/www/VOCASEEK/vocaseek/docs/openapi.yaml)
-- Frontend handoff lama: [docs/FRONTEND_API_HANDOFF.md](/c:/laragon/www/VOCASEEK/vocaseek/docs/FRONTEND_API_HANDOFF.md)
+- API README: [docs/API_README.md](/c:/laragon/www/pocaseek/backend/docs/API_README.md)
+- OpenAPI spec: [docs/openapi.yaml](/c:/laragon/www/pocaseek/backend/docs/openapi.yaml)
+- Frontend handoff lama: [docs/FRONTEND_API_HANDOFF.md](/c:/laragon/www/pocaseek/backend/docs/FRONTEND_API_HANDOFF.md)
 
 ## About Laravel
 

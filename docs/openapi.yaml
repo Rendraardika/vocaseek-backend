@@ -1,28 +1,86 @@
 openapi: 3.0.3
 info:
   title: Vocaseek API
-  version: 1.1.0
+  version: 1.2.0
   description: |
-    Dokumentasi API untuk integrasi frontend Vocaseek.
-    Base URL lokal: `http://localhost:8000/api`
-    Bahasa response backend dapat dipilih lewat header `X-Locale: id` atau `X-Locale: en`.
+    Dokumentasi API Vocaseek untuk kebutuhan integrasi frontend, QA, dan eksplorasi endpoint lewat Swagger UI.
+    Server API memakai path relatif agar tetap cocok di environment lokal maupun deployment.
 servers:
-  - url: http://localhost:8000/api
-    description: Local development
+  - url: /api
+    description: Relative API base URL
 tags:
   - name: Public
   - name: Auth
+  - name: Preferences
   - name: Intern
   - name: Company
   - name: Talent Pool
   - name: Admin
 components:
+  parameters:
+    LocaleHeader:
+      name: X-Locale
+      in: header
+      required: false
+      description: Pilih bahasa respons backend.
+      schema:
+        type: string
+        enum: [id, en]
+        default: id
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    JobIdPath:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: integer
+    VerificationIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: Token
   schemas:
+    StatusMessage:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operasi berhasil.
+    ErrorMessage:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Terjadi kesalahan.
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: The given data was invalid.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
     LoginRequest:
       type: object
       required: [email, password]
@@ -49,27 +107,53 @@ components:
         user:
           type: string
           example: Rendra
-    StatusMessage:
+    RegisterInternRequest:
       type: object
+      required: [nama, email, password, password_confirmation, notelp, role]
       properties:
-        status:
+        nama:
           type: string
-          example: success
-        message:
+          example: Rendra
+        email:
           type: string
-          example: Operasi berhasil.
-    ValidationError:
+          format: email
+          example: rendra@example.com
+        password:
+          type: string
+          example: password123
+        password_confirmation:
+          type: string
+          example: password123
+        notelp:
+          type: string
+          example: "08123456789"
+        role:
+          type: string
+          enum: [intern]
+    RegisterCompanyRequest:
       type: object
+      required: [nama, email, password, password_confirmation, notelp, role]
       properties:
-        message:
+        nama:
           type: string
-          example: The given data was invalid.
-        errors:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        password_confirmation:
+          type: string
+        notelp:
+          type: string
+        role:
+          type: string
+          enum: [company]
+        loa_pdf:
+          type: string
+          format: binary
+        akta_pdf:
+          type: string
+          format: binary
     MeResponse:
       type: object
       properties:
@@ -92,11 +176,206 @@ components:
             google_id:
               type: string
               nullable: true
+    LanguageResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            locale:
+              type: string
+              example: id
+    GoogleTokenRequest:
+      type: object
+      required: [access_token]
+      properties:
+        access_token:
+          type: string
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    ResetTokenValidationRequest:
+      type: object
+      required: [email, token]
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+    ResetPasswordRequest:
+      type: object
+      required: [email, token, password, password_confirmation]
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+        password:
+          type: string
+        password_confirmation:
+          type: string
+    InvitationVerifyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            invitation_id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+              nullable: true
+            role:
+              type: string
+            expires_at:
+              type: string
+              format: date-time
+              nullable: true
+            invited_by:
+              type: string
+              nullable: true
+            state:
+              type: string
+    InvitationTokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    InvitationAcceptRequest:
+      type: object
+      required: [token, password, password_confirmation]
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+        password_confirmation:
+          type: string
+    PretestSubmitRequest:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          items:
+            type: object
+            required: [question_id, selected_option]
+            properties:
+              question_id:
+                type: integer
+              selected_option:
+                type: string
+    JobApplyRequest:
+      type: object
+      required: [job_id]
+      properties:
+        job_id:
+          type: integer
+    JobStatusUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          example: REVIEW
+    CompanyJobRequest:
+      type: object
+      properties:
+        judul_posisi:
+          type: string
+        judul_pekerjaan:
+          type: string
+        deskripsi_pekerjaan:
+          type: string
+        persyaratan:
+          type: string
+        lokasi:
+          type: string
+        tipe_magang:
+          type: string
+        gaji_per_bulan:
+          type: number
+        tanggal_penutupan_lamaran:
+          type: string
+          format: date
+        tanggal_mulai_kerja:
+          type: string
+          format: date
+        status:
+          type: string
+          example: ACTIVE
+    CandidateManualRequest:
+      type: object
+      properties:
+        nama:
+          type: string
+        email:
+          type: string
+          format: email
+        notelp:
+          type: string
+        asal_kampus:
+          type: string
+        prodi:
+          type: string
+    VerificationReviewRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          example: reviewed
+    VerificationFinalRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [approve, reject]
+        status:
+          type: string
+          enum: [approve, reject]
+    ManagedAdminStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [active, disabled]
+    AdminInviteRequest:
+      type: object
+      required: [name, email, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [staff_admin]
 paths:
   /landing-stats:
     get:
       tags: [Public]
       summary: Statistik landing page
+      parameters:
+        - $ref: '#/components/parameters/LocaleHeader'
       responses:
         '200':
           description: Statistik publik
@@ -105,6 +384,8 @@ paths:
     get:
       tags: [Public]
       summary: Ambil lowongan aktif untuk landing page
+      parameters:
+        - $ref: '#/components/parameters/LocaleHeader'
       responses:
         '200':
           description: Daftar lowongan publik
@@ -113,10 +394,8 @@ paths:
     get:
       tags: [Public]
       summary: Ambil semua partner aktif
-      description: |
-        Endpoint publik untuk daftar perusahaan/partner aktif.
-        Bisa dipakai oleh halaman intern atau halaman publik.
       parameters:
+        - $ref: '#/components/parameters/LocaleHeader'
         - name: search
           in: query
           required: false
@@ -148,6 +427,15 @@ paths:
         `intern` memakai `application/json`.
         `company` memakai `multipart/form-data` karena upload `loa_pdf` dan `akta_pdf`.
         Akun `company` tidak langsung mendapat token dan harus menunggu approval super admin sebelum bisa login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterInternRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterCompanyRequest'
       responses:
         '201':
           description: Registrasi berhasil
@@ -180,6 +468,106 @@ paths:
         '403':
           description: Company belum disetujui super admin
 
+  /admin/invitations/verify:
+    get:
+      tags: [Auth]
+      summary: Verifikasi token undangan admin
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token invitation valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationVerifyResponse'
+        '409':
+          description: Invitation sudah dipakai
+        '410':
+          description: Invitation kedaluwarsa
+        '422':
+          description: Token tidak valid
+
+  /admin/invitations/accept:
+    post:
+      tags: [Auth]
+      summary: Aktivasi akun admin dari token undangan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationAcceptRequest'
+      responses:
+        '200':
+          description: Akun admin berhasil diaktifkan
+        '409':
+          description: Invitation sudah dipakai
+        '410':
+          description: Invitation kedaluwarsa
+        '422':
+          description: Validasi gagal
+
+  /email/verify/{id}/{hash}:
+    get:
+      tags: [Auth]
+      summary: Verifikasi email user aktif
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expires
+          in: query
+          schema:
+            type: integer
+        - name: signature
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect ke frontend / halaman status verifikasi
+
+  /email/pending-verify/{id}/{hash}:
+    get:
+      tags: [Auth]
+      summary: Verifikasi email untuk pending registration
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expires
+          in: query
+          schema:
+            type: integer
+        - name: signature
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect ke frontend / halaman status verifikasi
+
+  /email/verification-notification:
+    post:
+      tags: [Auth]
+      summary: Kirim ulang email verifikasi
+      responses:
+        '200':
+          description: Email verifikasi dikirim ulang
+        '429':
+          description: Terkena throttle
+
   /auth/google:
     get:
       tags: [Auth]
@@ -205,11 +593,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [access_token]
-              properties:
-                access_token:
-                  type: string
+              $ref: '#/components/schemas/GoogleTokenRequest'
       responses:
         '200':
           description: Login Google berhasil
@@ -220,6 +604,12 @@ paths:
     post:
       tags: [Auth]
       summary: Kirim email reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
       responses:
         '200':
           description: Jika email terdaftar, tautan reset dikirim
@@ -230,16 +620,28 @@ paths:
     post:
       tags: [Auth]
       summary: Validasi token reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetTokenValidationRequest'
       responses:
         '200':
           description: Token valid
         '400':
-          description: Token tidak valid atau kadaluarsa
+          description: Token tidak valid atau kedaluwarsa
 
   /reset-password:
     post:
       tags: [Auth]
       summary: Simpan password baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
       responses:
         '200':
           description: Password berhasil diperbarui
@@ -247,6 +649,68 @@ paths:
           description: Token reset tidak valid
         '422':
           description: Validasi gagal
+
+  /language:
+    get:
+      tags: [Preferences]
+      summary: Ambil preferensi bahasa user login
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Bahasa aktif user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LanguageResponse'
+    put:
+      tags: [Preferences]
+      summary: Update preferensi bahasa user login
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale]
+              properties:
+                locale:
+                  type: string
+                  enum: [id, en]
+      responses:
+        '200':
+          description: Bahasa berhasil diperbarui
+
+  /preferences/language:
+    get:
+      tags: [Preferences]
+      summary: Alias ambil preferensi bahasa
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Bahasa aktif user
+    put:
+      tags: [Preferences]
+      summary: Alias update preferensi bahasa
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale]
+              properties:
+                locale:
+                  type: string
+                  enum: [id, en]
+      responses:
+        '200':
+          description: Bahasa berhasil diperbarui
 
   /me:
     get:
@@ -292,9 +756,6 @@ paths:
     get:
       tags: [Intern]
       summary: Ambil soal pre-test subjektif
-      description: |
-        Soal disediakan backend.
-        Setiap user hanya dapat menyelesaikan pre-test satu kali.
       security:
         - bearerAuth: []
       responses:
@@ -304,9 +765,81 @@ paths:
           description: Profil belum lengkap atau test sudah selesai
 
   /intern/update-profile:
+    post:
+      tags: [Intern]
+      summary: Update profil intern via multipart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                foto:
+                  type: string
+                  format: binary
+                cv_pdf:
+                  type: string
+                  format: binary
+                dokumen_pendidikan_pdf:
+                  type: string
+                  format: binary
+                education_document:
+                  type: string
+                  format: binary
+                portofolio_pdf:
+                  type: string
+                  format: binary
+                surat_rekomendasi_pdf:
+                  type: string
+                  format: binary
+                ktp_pdf:
+                  type: string
+                  format: binary
+                transkrip_nilai_pdf:
+                  type: string
+                  format: binary
+                tentang_saya:
+                  type: string
+                tempat_lahir:
+                  type: string
+                tanggal_lahir:
+                  type: string
+                  format: date
+                jenis_kelamin:
+                  type: string
+                provinsi:
+                  type: string
+                kabupaten:
+                  type: string
+                detail_alamat:
+                  type: string
+                universitas:
+                  type: string
+                jurusan:
+                  type: string
+                jenjang:
+                  type: string
+                ipk:
+                  type: number
+                tahun_masuk:
+                  type: integer
+                tahun_lulus:
+                  type: integer
+                linkedin:
+                  type: string
+                instagram:
+                  type: string
+                notelp:
+                  type: string
+      responses:
+        '200':
+          description: Profil diperbarui
     put:
       tags: [Intern]
-      summary: Update profil intern
+      summary: Update profil intern via JSON atau form-data
       security:
         - bearerAuth: []
       responses:
@@ -331,6 +864,12 @@ paths:
       summary: Submit jawaban pre-test
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PretestSubmitRequest'
       responses:
         '200':
           description: Tes berhasil dikirim
@@ -343,6 +882,12 @@ paths:
       summary: Lamar lowongan
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobApplyRequest'
       responses:
         '200':
           description: Lamaran berhasil terkirim
@@ -353,12 +898,11 @@ paths:
     get:
       tags: [Intern]
       summary: Daftar lamaran intern
-      description: Route ada, tetapi method controller belum ditemukan. Anggap belum siap dipakai.
       security:
         - bearerAuth: []
       responses:
-        '501':
-          description: Belum diimplementasikan
+        '200':
+          description: Daftar lamaran user aktif
 
   /company/profile:
     get:
@@ -404,6 +948,12 @@ paths:
       summary: Buat lowongan baru
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyJobRequest'
       responses:
         '201':
           description: Lowongan berhasil dibuat
@@ -417,11 +967,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyJobRequest'
       responses:
         '200':
           description: Lowongan berhasil diupdate
@@ -431,11 +983,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
           description: Lowongan berhasil dihapus
@@ -447,11 +995,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: jobId
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/JobIdPath'
       responses:
         '200':
           description: Daftar pelamar
@@ -463,11 +1007,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobStatusUpdateRequest'
       responses:
         '200':
           description: Status pelamar diperbarui
@@ -489,11 +1035,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
           description: Detail kandidat
@@ -504,6 +1046,12 @@ paths:
       summary: Tambah kandidat manual
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateManualRequest'
       responses:
         '200':
           description: Kandidat manual berhasil dibuat
@@ -515,11 +1063,13 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobStatusUpdateRequest'
       responses:
         '200':
           description: Status kandidat diperbarui
@@ -533,16 +1083,6 @@ paths:
       responses:
         '200':
           description: Kandidat terpilih
-
-  /admin/overview:
-    get:
-      tags: [Admin]
-      summary: Dashboard admin
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Overview admin
 
   /admin/profile:
     get:
@@ -565,7 +1105,7 @@ paths:
           description: Profil admin diperbarui
 
   /admin/profile/change-password:
-    put:
+    post:
       tags: [Admin]
       summary: Ganti password admin
       security:
@@ -573,6 +1113,24 @@ paths:
       responses:
         '200':
           description: Password diperbarui
+    put:
+      tags: [Admin]
+      summary: Alias ganti password admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Password diperbarui
+
+  /admin/overview:
+    get:
+      tags: [Admin]
+      summary: Dashboard admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Overview admin
 
   /admin/talents:
     get:
@@ -585,20 +1143,38 @@ paths:
           description: Daftar talenta
 
   /admin/talents/{id}:
+    get:
+      tags: [Admin]
+      summary: Detail talenta
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Detail talenta
     delete:
       tags: [Admin]
       summary: Hapus talenta
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
           description: Talenta dihapus
+
+  /admin/talents/{id}/download-cv:
+    get:
+      tags: [Admin]
+      summary: Download CV talenta
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: File CV berhasil diunduh
 
   /admin/partners:
     get:
@@ -625,11 +1201,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
           description: Detail partner
@@ -639,11 +1211,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
           description: Partner dihapus
@@ -661,18 +1229,17 @@ paths:
   /admin/verification/{id}/review-status:
     put:
       tags: [Admin]
-      summary: Update status review
-      description: |
-        Endpoint ini menerima alias status agar frontend lebih fleksibel:
-        `pending`, `reviewed`, `approve`, `active`, `reject`, `rejected`.
+      summary: Update status review mitra
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/VerificationIdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationReviewRequest'
       responses:
         '200':
           description: Status review diperbarui
@@ -680,15 +1247,11 @@ paths:
   /admin/verification/{id}/detail:
     get:
       tags: [Admin]
-      summary: Detail verifikasi
+      summary: Detail verifikasi partner
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/VerificationIdPath'
       responses:
         '200':
           description: Detail verifikasi
@@ -697,17 +1260,16 @@ paths:
     post:
       tags: [Admin]
       summary: Verifikasi final mitra
-      description: |
-        Hanya super admin.
-        Payload dapat memakai `action=approve|reject` atau `status=approve|reject`.
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/VerificationIdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationFinalRequest'
       responses:
         '200':
           description: Verifikasi final diproses
@@ -723,27 +1285,21 @@ paths:
       responses:
         '200':
           description: User management list
-    post:
-      tags: [Admin]
-      summary: Tambah admin internal
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Admin ditambahkan
 
   /admin/users-management/{id}/status:
     put:
       tags: [Admin]
-      summary: Update status admin
+      summary: Update status admin internal
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManagedAdminStatusRequest'
       responses:
         '200':
           description: Status admin diperbarui
@@ -751,17 +1307,69 @@ paths:
   /admin/users-management/{id}:
     delete:
       tags: [Admin]
-      summary: Hapus admin
+      summary: Hapus admin internal
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
           description: Admin dihapus
         '403':
           description: Tidak boleh hapus akun sendiri
+
+  /admin/users/invite:
+    post:
+      tags: [Admin]
+      summary: Kirim undangan admin baru
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminInviteRequest'
+      responses:
+        '201':
+          description: Undangan berhasil dikirim
+
+  /admin/invitations/resend:
+    post:
+      tags: [Admin]
+      summary: Kirim ulang undangan admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invitation_id]
+              properties:
+                invitation_id:
+                  type: integer
+      responses:
+        '200':
+          description: Undangan berhasil dikirim ulang
+
+  /admin/invitations/cancel:
+    post:
+      tags: [Admin]
+      summary: Batalkan undangan admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invitation_id]
+              properties:
+                invitation_id:
+                  type: integer
+      responses:
+        '200':
+          description: Undangan berhasil dibatalkan
