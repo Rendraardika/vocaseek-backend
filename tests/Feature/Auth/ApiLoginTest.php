@@ -15,6 +15,7 @@ class ApiLoginTest extends TestCase
         User::create([
             'nama' => 'Super Admin',
             'email' => 'admin@vocaseek.com',
+            'email_verified_at' => now(),
             'password' => 'admin123',
             'role' => 'super_admin',
             'notelp' => '08123456789',

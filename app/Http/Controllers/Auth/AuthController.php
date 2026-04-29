@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
@@ -15,6 +16,7 @@ use App\Models\PendingRegistration;
 use App\Notifications\VerifyPendingRegistrationForSpa;
 use App\Support\PasswordRules;
 use Illuminate\Contracts\Auth\StatefulGuard;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -31,10 +33,11 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $existingUser = User::where('email', $request->email)->first();
-        $pendingRegistration = PendingRegistration::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
-        if (! $existingUser) {
+        if (! $user) {
+            $pendingRegistration = PendingRegistration::where('email', $request->email)->first();
+
             if ($pendingRegistration) {
                 return response()->json([
                     'status' => 'error',
@@ -50,7 +53,7 @@ class AuthController extends Controller
             ], 404);
         }
 
-        if ($existingUser?->status === 'pending_invitation') {
+        if ($user->status === 'pending_invitation') {
             return response()->json([
                 'status' => 'error',
                 'code' => 'invitation_pending',
@@ -58,7 +61,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        if ($existingUser?->status === 'disabled') {
+        if ($user->status === 'disabled') {
             return response()->json([
                 'status' => 'error',
                 'code' => 'account_disabled',
@@ -72,15 +75,15 @@ class AuthController extends Controller
             $guard->logout();
         }
 
-        if (! $guard->attempt($request->only('email', 'password'))) {
+        if (! Hash::check((string) $request->password, (string) $user->password)) {
             return response()->json(['message' => 'Email atau Password salah'], 401);
         }
+
+        $guard->login($user);
 
         if ($request->hasSession()) {
             $request->session()->regenerate();
         }
-
-        $user = $guard->user();
 
         if (! $user->hasVerifiedEmail()) {
             $guard->logout();
@@ -159,48 +162,32 @@ class AuthController extends Controller
             'password.regex' => PasswordRules::message(),
         ]);
 
+        $uploadedCompanyFiles = [];
+        $oldCompanyFiles = [];
+
         try {
-            $pendingRegistration = DB::transaction(function () use ($request) {
-                $pendingRegistration = PendingRegistration::where('email', $request->email)->first();
+            $existingPendingRegistration = PendingRegistration::where('email', $request->email)->first();
+            $oldCompanyFiles = $this->companyDocumentPaths($existingPendingRegistration?->company_payload ?? []);
 
-                if ($pendingRegistration && $pendingRegistration->role === 'company' && $request->role !== 'company') {
-                    $oldPayload = $pendingRegistration->company_payload ?? [];
+            $companyPayload = null;
 
-                    foreach ([$oldPayload['loa_pdf'] ?? null, $oldPayload['akta_pdf'] ?? null] as $oldFile) {
-                        if ($oldFile) {
-                            Storage::disk('public')->delete($oldFile);
-                        }
-                    }
-                }
+            if ($request->role === 'company') {
+                $loaPath = $request->file('loa_pdf')->store('company/documents/pending', 'public');
+                $aktaPath = $request->file('akta_pdf')->store('company/documents/pending', 'public');
 
-                if ($pendingRegistration && ($pendingRegistration->role !== 'company' || $request->role !== 'company')) {
-                    $pendingRegistration->company_payload = null;
-                }
+                $uploadedCompanyFiles = [$loaPath, $aktaPath];
 
-                $companyPayload = null;
+                $companyPayload = [
+                    'nama_perusahaan' => $request->nama_perusahaan,
+                    'notelp' => $request->notelp,
+                    'nib' => $request->nib,
+                    'loa_pdf' => $loaPath,
+                    'akta_pdf' => $aktaPath,
+                    'status_mitra' => 'pending',
+                ];
+            }
 
-                if ($request->role === 'company') {
-                    $oldPayload = $pendingRegistration?->company_payload ?? [];
-
-                    $loaPath = $request->file('loa_pdf')->store('company/documents/pending', 'public');
-                    $aktaPath = $request->file('akta_pdf')->store('company/documents/pending', 'public');
-
-                    foreach ([$oldPayload['loa_pdf'] ?? null, $oldPayload['akta_pdf'] ?? null] as $oldFile) {
-                        if ($oldFile && $oldFile !== $loaPath && $oldFile !== $aktaPath) {
-                            Storage::disk('public')->delete($oldFile);
-                        }
-                    }
-
-                    $companyPayload = [
-                        'nama_perusahaan' => $request->nama_perusahaan,
-                        'notelp' => $request->notelp,
-                        'nib' => $request->nib,
-                        'loa_pdf' => $loaPath,
-                        'akta_pdf' => $aktaPath,
-                        'status_mitra' => 'pending',
-                    ];
-                }
-
+            $pendingRegistration = DB::transaction(function () use ($request, $companyPayload) {
                 return PendingRegistration::updateOrCreate(
                     ['email' => $request->email],
                     [
@@ -214,42 +201,39 @@ class AuthController extends Controller
                 );
             });
 
-            if (method_exists($request, 'afterResponse')) {
-                $request->afterResponse(function () use ($pendingRegistration) {
-                    Notification::route('mail', $pendingRegistration->email)
-                        ->notify(new VerifyPendingRegistrationForSpa($pendingRegistration));
-                });
-            } else {
-                Notification::route('mail', $pendingRegistration->email)
-                    ->notify(new VerifyPendingRegistrationForSpa($pendingRegistration));
-            }
+        } catch (Throwable $e) {
+            $this->deleteStoredFiles($uploadedCompanyFiles);
 
-            if ($pendingRegistration->role === 'company') {
-                return response()->json([
-                    'status'  => 'success',
-                    'message' => 'Registrasi company berhasil. Data Anda akan dibuat setelah email diverifikasi. Setelah itu akun tetap harus menunggu persetujuan mitra sebelum bisa login.',
-                    'user'    => $pendingRegistration->nama,
-                    'role'    => $pendingRegistration->role,
-                    'email'   => $pendingRegistration->email,
-                    'locale'  => $pendingRegistration->preferred_locale ?? app()->getLocale(),
-                ], 201);
-            }
-
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Registrasi berhasil. Akun Anda akan dibuat setelah link verifikasi di email diklik.',
-                'user'    => $pendingRegistration->nama,
-                'role'    => $pendingRegistration->role,
-                'email'   => $pendingRegistration->email,
-                'locale'  => $pendingRegistration->preferred_locale ?? app()->getLocale(),
-            ], 201);
-
-        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal registrasi: ' . $e->getMessage()
             ], 500);
         }
+
+        $this->deleteStoredFiles(array_diff($oldCompanyFiles, $uploadedCompanyFiles));
+
+        Notification::route('mail', $pendingRegistration->email)
+            ->notify(new VerifyPendingRegistrationForSpa($pendingRegistration));
+
+        if ($pendingRegistration->role === 'company') {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Registrasi company berhasil. Data Anda akan dibuat setelah email diverifikasi. Setelah itu akun tetap harus menunggu persetujuan mitra sebelum bisa login.',
+                'user'    => $pendingRegistration->nama,
+                'role'    => $pendingRegistration->role,
+                'email'   => $pendingRegistration->email,
+                'locale'  => $pendingRegistration->preferred_locale ?? app()->getLocale(),
+            ], 201);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Registrasi berhasil. Akun Anda akan dibuat setelah link verifikasi di email diklik.',
+            'user'    => $pendingRegistration->nama,
+            'role'    => $pendingRegistration->role,
+            'email'   => $pendingRegistration->email,
+            'locale'  => $pendingRegistration->preferred_locale ?? app()->getLocale(),
+        ], 201);
     }
 
     // 3. FUNGSI LOGOUT
@@ -288,5 +272,20 @@ class AuthController extends Controller
                 'google_id' => $user->google_id,
             ],
         ]);
+    }
+
+    private function companyDocumentPaths(array $payload): array
+    {
+        return array_values(array_filter([
+            $payload['loa_pdf'] ?? null,
+            $payload['akta_pdf'] ?? null,
+        ], fn ($path) => is_string($path) && $path !== ''));
+    }
+
+    private function deleteStoredFiles(array $paths): void
+    {
+        foreach (array_unique($paths) as $path) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

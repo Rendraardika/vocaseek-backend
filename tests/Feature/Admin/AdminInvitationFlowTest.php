@@ -41,7 +41,7 @@ class AdminInvitationFlowTest extends TestCase
         $invitation = AdminInvitation::where('email', 'staff@vocaseek.com')->first();
         $this->assertNotNull($invitation);
 
-        Mail::assertSent(AdminInvitationMail::class, 1);
+        Mail::assertQueued(AdminInvitationMail::class, 1);
     }
 
     public function test_duplicate_email_is_rejected(): void
@@ -152,7 +152,7 @@ class AdminInvitationFlowTest extends TestCase
         $invitation->refresh();
         $this->assertNotNull($invitation->cancelled_at);
         $this->assertDatabaseCount('admin_invitations', 2);
-        Mail::assertSent(AdminInvitationMail::class, 1);
+        Mail::assertQueued(AdminInvitationMail::class, 1);
     }
 
     public function test_cancel_invitation_marks_it_cancelled(): void

@@ -21,8 +21,8 @@ class PendingRegistrationTest extends TestCase
         $response = $this->postJson('/api/register', [
             'nama' => 'Calon User',
             'email' => 'calon@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'notelp' => '08123456789',
             'role' => 'intern',
         ]);

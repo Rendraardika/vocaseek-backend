@@ -15,7 +15,7 @@ class AdminInvitationService
 {
     public function invite(array $payload, User $inviter, ?string $frontendBaseUrl = null): array
     {
-        return DB::transaction(function () use ($payload, $inviter, $frontendBaseUrl) {
+        [$user, $invitation, $activationUrl] = DB::transaction(function () use ($payload, $inviter, $frontendBaseUrl) {
             [$invitation, $plainToken, $activationUrl] = $this->createInvitationRecord(
                 null,
                 $payload,
@@ -23,10 +23,12 @@ class AdminInvitationService
                 $frontendBaseUrl,
             );
 
-            $this->sendInvitationEmail($invitation, $activationUrl);
-
             return [null, $invitation, $activationUrl];
         });
+
+        $this->sendInvitationEmail($invitation, $activationUrl);
+
+        return [$user, $invitation, $activationUrl];
     }
 
     public function verifyToken(string $plainToken): AdminInvitation
@@ -123,7 +125,7 @@ class AdminInvitationService
             ]);
         }
 
-        return DB::transaction(function () use ($invitation, $inviter, $frontendBaseUrl) {
+        [$newInvitation, $activationUrl] = DB::transaction(function () use ($invitation, $inviter, $frontendBaseUrl) {
             AdminInvitation::query()
                 ->where('email', $invitation->email)
                 ->whereNull('used_at')
@@ -155,10 +157,12 @@ class AdminInvitationService
                 $frontendBaseUrl,
             );
 
-            $this->sendInvitationEmail($newInvitation, $activationUrl);
-
             return [$newInvitation, $activationUrl];
         });
+
+        $this->sendInvitationEmail($newInvitation, $activationUrl);
+
+        return [$newInvitation, $activationUrl];
     }
 
     public function cancel(AdminInvitation $invitation): AdminInvitation
@@ -216,7 +220,7 @@ class AdminInvitationService
 
     private function sendInvitationEmail(AdminInvitation $invitation, string $activationUrl): void
     {
-        Mail::to($invitation->email)->send(
+        Mail::to($invitation->email)->queue(
             new AdminInvitationMail($invitation->fresh(['inviter']), $activationUrl)
         );
     }

@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordForSpa;
 use App\Notifications\VerifyEmailForSpa;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -87,40 +87,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function sendPasswordResetNotification($token): void
     {
-        $resetUrl = rtrim(config('app.public_frontend_url', config('app.frontend_url')), '/')
-            .'/reset-password?token='.$token.'&email='.urlencode($this->getEmailForPasswordReset());
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Reset Password Vocaseek</title>
-</head>
-<body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
-    <p>Halo {$this->nama},</p>
-    <p>Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.</p>
-    <p>
-        Klik tautan berikut untuk membuat kata sandi baru:
-        <br>
-        <a href="{$resetUrl}">{$resetUrl}</a>
-    </p>
-    <p>Tautan ini berlaku selama {$this->passwordResetExpiryMinutes()} menit.</p>
-    <p>Jika Anda tidak merasa meminta reset password, abaikan email ini.</p>
-    <p>Terima kasih,<br>Vocaseek</p>
-</body>
-</html>
-HTML;
-
-        Mail::html($html, function ($message) {
-            $message->to($this->email)
-                ->subject('Reset Password Vocaseek');
-        });
-    }
-
-    private function passwordResetExpiryMinutes(): int
-    {
-        return (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+        $this->notify(new ResetPasswordForSpa($token));
     }
 
     public static function supportsPreferredLocale(): bool
