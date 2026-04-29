@@ -19,8 +19,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static ?bool $hasEmailVerifiedAtColumn = null;
 
     protected $table = 'users';
-    
-    // Karena kamu pakai user_id, pastikan ini konsisten di semua tabel relasi
+
+
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
@@ -34,7 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'notelp',
         'foto',
         'preferred_locale',
-        'google_id', 
+        'google_id',
     ];
 
     protected $hidden = [
@@ -42,9 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-    /**
-     * Casting password agar otomatis di-hash
-     */
+
     protected function casts(): array
     {
         return [
@@ -53,20 +51,15 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    // --- RELASI ---
 
-    /**
-     * Relasi ke profil Intern
-     */
+
     public function internProfile()
     {
-        // Parameter: (Model, Foreign Key di tabel tujuan, Local Key di tabel users)
+
         return $this->hasOne(InternProfile::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Relasi ke profil Company (Penting untuk Dashboard Mitra)
-     */
+
     public function companyProfile()
     {
         return $this->hasOne(CompanyProfile::class, 'user_id', 'user_id');

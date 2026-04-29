@@ -8,7 +8,7 @@ use App\Models\JobApplication;
 use App\Models\TestAnswer;
 use App\Models\InternExperience;
 use App\Models\InternCertification;
-use App\Models\Lowongan; // Pastikan Abang buat model untuk tabel lowongan
+use App\Models\Lowongan;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -72,14 +72,12 @@ class InternController extends Controller
         ]);
     }
 
-    /**
-     * Ambil Data Profil Lengkap
-     */
+
     public function getProfile()
     {
         $user = Auth::user();
         $profile = InternProfile::where('user_id', $user->user_id)->first();
-        
+
         if (!$profile) return response()->json(['message' => 'Profil tidak ditemukan'], 404);
 
         $experiences = InternExperience::where('user_id', $user->user_id)
