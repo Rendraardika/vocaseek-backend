@@ -106,7 +106,7 @@ class AdminPartnerController extends Controller
                     'email' => $partner->user->email,
                     'phone' => $partner->user->notelp
                 ],
-               
+        
                 'aktivitas' => [
                     ['tgl' => now()->format('d M Y'), 'pesan' => 'Membuka lowongan baru'],
                     ['tgl' => $partner->updated_at->format('d M Y'), 'pesan' => 'Dokumen MOU diverifikasi'],
