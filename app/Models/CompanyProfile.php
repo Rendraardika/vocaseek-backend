@@ -9,7 +9,7 @@ class CompanyProfile extends Model
 {
     use HasFactory;
 
-    protected $table = 'company_profile'; // Sesuai nama tabel di HeidiSQL
+    protected $table = 'company_profiles';
     protected $primaryKey = 'id'; // Sesuai screenshot Abang
 
     protected $fillable = [

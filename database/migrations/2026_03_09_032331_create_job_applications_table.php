@@ -23,7 +23,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
             
             // Foreign Key ke Tabel Lowongan (merujuk ke tabel lowongan yang kita buat baru)
-            $table->foreign('job_id')->references('id')->on('lowongan')->onDelete('cascade');
+            $table->foreign('job_id')->references('id')->on('lowongans')->onDelete('cascade');
         });
     }
 

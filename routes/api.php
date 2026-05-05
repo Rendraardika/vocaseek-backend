@@ -32,7 +32,7 @@ Route::get('/partners', [CompanyController::class, 'getPublicPartners']);
 
 // Auth Utama
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('api.login');
 Route::get('/admin/invitations/verify', [AdminInvitationController::class, 'verify'])
     ->middleware('throttle:12,1');
 Route::post('/admin/invitations/accept', [AdminInvitationController::class, 'accept'])

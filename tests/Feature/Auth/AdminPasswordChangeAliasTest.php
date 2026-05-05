@@ -26,8 +26,8 @@ class AdminPasswordChangeAliasTest extends TestCase
 
         $response = $this->postJson('/api/admin/profile/change-password', [
             'old_password' => 'admin123',
-            'new_password' => 'PasswordBaru123',
-            'confirm_password' => 'PasswordBaru123',
+            'new_password' => 'PasswordBaru123!',
+            'confirm_password' => 'PasswordBaru123!',
         ]);
 
         $response
@@ -36,7 +36,7 @@ class AdminPasswordChangeAliasTest extends TestCase
                 'message' => 'Kata sandi berhasil diperbarui!',
             ]);
 
-        $this->assertTrue(Hash::check('PasswordBaru123', $admin->fresh()->password));
+        $this->assertTrue(Hash::check('PasswordBaru123!', $admin->fresh()->password));
         $this->assertFalse(Hash::check('admin123', $admin->fresh()->password));
     }
 }

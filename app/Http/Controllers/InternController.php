@@ -741,7 +741,11 @@ class InternController extends Controller
                                 ->exists();
         
         if ($exists) {
-            return response()->json(['message' => 'Anda sudah melamar di posisi ini.'], 400);
+            return response()->json([
+                'status' => 'error',
+                'code' => 'already_applied',
+                'message' => 'Anda sudah melamar di lowongan ini.',
+            ], 409);
         }
 
         // Simpan Lamaran (Sesuai kolom di tabel job_applications Abang)

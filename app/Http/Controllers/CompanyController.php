@@ -32,11 +32,15 @@ class CompanyController extends Controller
     {
         $validated = $request->validate([
             'judul_posisi' => 'required|string|max:255',
+            'kategori_pekerjaan' => 'nullable|string|max:255',
+            'tipe_pekerjaan' => 'nullable|string|max:255',
             'deskripsi_pekerjaan' => 'required|string',
             'persyaratan' => 'required|string',
             'lokasi' => 'required|string',
             'tipe_magang' => 'required|in:remote,onsite,hybrid',
             'gaji_per_bulan' => 'nullable|string',
+            'gaji_min' => 'nullable|numeric',
+            'gaji_max' => 'nullable|numeric',
             'tanggal_penutupan_lamaran' => 'nullable|date',
             'tanggal_mulai_kerja' => 'nullable|date',
             'tgl_tutup_lamaran' => 'nullable|date',
@@ -44,20 +48,54 @@ class CompanyController extends Controller
             'status' => 'required|in:ACTIVE,OPEN,CLOSED,DRAFT',
         ]);
 
-        $validated['tanggal_penutupan_lamaran'] = $validated['tanggal_penutupan_lamaran']
+        $deadline = $validated['tanggal_penutupan_lamaran']
             ?? $validated['tgl_tutup_lamaran']
             ?? null;
-        $validated['tanggal_mulai_kerja'] = $validated['tanggal_mulai_kerja']
+        $startDate = $validated['tanggal_mulai_kerja']
             ?? $validated['tgl_mulai_kerja']
             ?? null;
+        [$salaryMin, $salaryMax] = $this->parseSalaryRange(
+            $validated['gaji_per_bulan'] ?? null,
+            $validated['gaji_min'] ?? null,
+            $validated['gaji_max'] ?? null,
+        );
 
-        unset($validated['tgl_tutup_lamaran'], $validated['tgl_mulai_kerja']);
+        return [
+            'judul_posisi' => $validated['judul_posisi'],
+            'judul_pekerjaan' => $validated['judul_posisi'],
+            'kategori_pekerjaan' => $validated['kategori_pekerjaan'] ?? 'Magang',
+            'tipe_pekerjaan' => $validated['tipe_pekerjaan'] ?? 'Internship',
+            'deskripsi_pekerjaan' => $validated['deskripsi_pekerjaan'],
+            'persyaratan' => $validated['persyaratan'],
+            'lokasi' => $validated['lokasi'],
+            'tipe_magang' => $validated['tipe_magang'],
+            'pengaturan_kerja' => $validated['tipe_magang'],
+            'gaji_per_bulan' => $validated['gaji_per_bulan'] ?? null,
+            'gaji_min' => $salaryMin,
+            'gaji_max' => $salaryMax,
+            'tanggal_penutupan_lamaran' => $deadline,
+            'tanggal_mulai_kerja' => $startDate,
+            'tgl_tutup_lamaran' => $deadline,
+            'tgl_mulai_kerja' => $startDate,
+            'status' => $validated['status'],
+        ];
+    }
 
-        if (($validated['status'] ?? null) === 'OPEN') {
-            $validated['status'] = 'ACTIVE';
+    private function parseSalaryRange(?string $salaryRange, mixed $salaryMin, mixed $salaryMax): array
+    {
+        $min = is_numeric($salaryMin) ? (int) $salaryMin : null;
+        $max = is_numeric($salaryMax) ? (int) $salaryMax : null;
+
+        if (($min || $max) || ! $salaryRange) {
+            return [$min, $max];
         }
 
-        return $validated;
+        $numbers = collect(preg_split('/\D+/', $salaryRange))
+            ->filter(fn ($value) => $value !== '')
+            ->map(fn ($value) => (int) $value)
+            ->values();
+
+        return [$numbers->get(0), $numbers->get(1)];
     }
 
     /**
@@ -154,7 +192,7 @@ class CompanyController extends Controller
 
         $stats = [
             'total_applicants' => JobApplication::whereIn('job_id', $jobIds)->count(),
-            'active_jobs'      => Lowongan::where('company_profile_id', $company->id)->where('status', 'ACTIVE')->count(),
+            'active_jobs'      => Lowongan::where('company_profile_id', $company->id)->whereIn('status', ['ACTIVE', 'OPEN'])->count(),
             'shortlisted'      => JobApplication::whereIn('job_id', $jobIds)->where('status', 'SHORTLISTED')->count(),
         ];
 
@@ -166,7 +204,7 @@ class CompanyController extends Controller
             ->map(fn($app) => [
                 'application_id' => $app->application_id,
                 'name'           => $app->user->nama ?? 'N/A',
-                'position'       => $app->lowongan->judul_posisi ?? 'N/A',
+                'position'       => $app->lowongan->judul_posisi ?? $app->lowongan->judul_pekerjaan ?? 'N/A',
                 'date'           => $app->created_at->format('d M Y'),
                 'status'         => $app->status
             ]);
@@ -188,7 +226,7 @@ class CompanyController extends Controller
             ->latest()
             ->get();
 
-        return response()->json(['status' => 'success', 'job' => $job->judul_posisi, 'applicants' => $applicants]);
+        return response()->json(['status' => 'success', 'job' => $job->judul_posisi ?? $job->judul_pekerjaan, 'applicants' => $applicants]);
     }
 
     public function updateApplicationStatus(Request $request, $id)
@@ -261,7 +299,7 @@ class CompanyController extends Controller
     public function getPublicStats()
     {
         $activeJobsQuery = Lowongan::query()
-            ->where('status', 'ACTIVE')
+            ->whereIn('status', ['ACTIVE', 'OPEN'])
             ->whereHas('companyProfile', function ($query) {
                 $query->where('status_mitra', 'active');
             });
@@ -280,7 +318,7 @@ class CompanyController extends Controller
     {
         
         $jobs = Lowongan::with('companyProfile')
-            ->where('status', 'ACTIVE')
+            ->whereIn('status', ['ACTIVE', 'OPEN'])
             ->whereHas('companyProfile', function ($query) {
                 $query->where('status_mitra', 'active');
             })

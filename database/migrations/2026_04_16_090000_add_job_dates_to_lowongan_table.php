@@ -29,7 +29,7 @@ return new class extends Migration
 
         Schema::table($tableName, function (Blueprint $table) use ($tableName) {
             if (! Schema::hasColumn($tableName, 'tanggal_penutupan_lamaran')) {
-                $table->date('tanggal_penutupan_lamaran')->nullable()->after('gaji_per_bulan');
+                $table->date('tanggal_penutupan_lamaran')->nullable()->after('gaji_max');
             }
 
             if (! Schema::hasColumn($tableName, 'tanggal_mulai_kerja')) {

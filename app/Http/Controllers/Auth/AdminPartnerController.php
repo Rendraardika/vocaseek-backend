@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
+use App\Models\Lowongan;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -178,10 +179,14 @@ class AdminPartnerController extends Controller
     
     public function destroy($id)
     {
-        $partner = CompanyProfile::with('user')->findOrFail($id);
+        $partner = CompanyProfile::with(['user', 'lowongans'])->findOrFail($id);
 
         DB::transaction(function () use ($partner) {
             $user = $partner->user;
+
+            Lowongan::where('company_profile_id', $partner->id)->delete();
+
+            $this->deletePartnerFiles($partner);
 
             $partner->delete();
 
@@ -194,6 +199,20 @@ class AdminPartnerController extends Controller
             'status' => 'success',
             'message' => 'Mitra berhasil dihapus.',
         ]);
+    }
+
+    private function deletePartnerFiles(CompanyProfile $partner): void
+    {
+        $paths = [
+            $partner->loa_pdf,
+            $partner->akta_pdf,
+            $partner->logo_perusahaan,
+            $partner->banner_perusahaan,
+        ];
+
+        foreach (array_filter($paths) as $path) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function formatStatus(?string $statusMitra): string

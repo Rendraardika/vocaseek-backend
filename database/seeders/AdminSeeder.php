@@ -11,8 +11,8 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         $adminPayload = [
-            'nama' => 'Super Admin Vocaseek',
-            'password' => 'admin123',
+            'nama' => env('SUPER_ADMIN_NAME', 'Super Admin Vocaseek'),
+            'password' => env('SUPER_ADMIN_PASSWORD', 'admin123'),
             'role' => 'super_admin',
         ];
 
@@ -20,14 +20,18 @@ class AdminSeeder extends Seeder
             $adminPayload['status'] = 'active';
         }
 
+        if (Schema::hasColumn('users', 'email_verified_at')) {
+            $adminPayload['email_verified_at'] = now();
+        }
+
         User::updateOrCreate(
-            ['email' => 'admin@vocaseek.com'],
+            ['email' => env('SUPER_ADMIN_EMAIL', 'admin@vocaseek.com')],
             $adminPayload
         );
 
         $staffPayload = [
-            'nama' => 'Staff Verifikasi',
-            'password' => 'staff123',
+            'nama' => env('STAFF_ADMIN_NAME', 'Staff Verifikasi'),
+            'password' => env('STAFF_ADMIN_PASSWORD', 'staff123'),
             'role' => 'staff_admin',
         ];
 
@@ -35,8 +39,12 @@ class AdminSeeder extends Seeder
             $staffPayload['status'] = 'active';
         }
 
+        if (Schema::hasColumn('users', 'email_verified_at')) {
+            $staffPayload['email_verified_at'] = now();
+        }
+
         User::updateOrCreate(
-            ['email' => 'staff@vocaseek.com'],
+            ['email' => env('STAFF_ADMIN_EMAIL', 'staff@vocaseek.com')],
             $staffPayload
         );
     }

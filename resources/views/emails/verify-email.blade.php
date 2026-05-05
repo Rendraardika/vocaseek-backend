@@ -8,7 +8,12 @@
 <body style="margin:0;background:#f4f6fb;font-family:Arial,sans-serif;color:#1f2937;">
     <div style="max-width:420px;margin:0 auto;padding:36px 16px;">
         <div style="text-align:center;margin-bottom:14px;">
-            <img src="{{ url('/vocaseeklogo.png') }}" alt="Vocaseek" style="width:128px;max-width:100%;height:auto;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
+                <tr>
+                    <td style="font-size:34px;font-weight:900;line-height:1;color:#f2b90d;font-family:Arial,sans-serif;padding-right:10px;">V</td>
+                    <td style="font-size:16px;font-weight:900;letter-spacing:0.04em;color:#12233d;font-family:Arial,sans-serif;">VOCASEEK</td>
+                </tr>
+            </table>
         </div>
 
         <div style="background:#ffffff;border:1px solid #e7ebf3;border-radius:22px;padding:28px 24px;box-shadow:0 12px 30px rgba(31,41,55,0.08);">
