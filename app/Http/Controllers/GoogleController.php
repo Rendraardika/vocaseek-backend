@@ -67,7 +67,11 @@ class GoogleController extends Controller
         try {
             $googleUser = Socialite::driver('google')->userFromToken($request->access_token);
             $user = $this->findOrCreateGoogleUser($googleUser);
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $newToken = $user->createToken('auth_token');
+            $token = $newToken->plainTextToken;
+
+            // Clean up old tokens for this user (keep only the one just created).
+            $user->tokens()->where('id', '!=', $newToken->accessToken->id)->delete();
 
             return response()->json([
                 'status' => 'success',

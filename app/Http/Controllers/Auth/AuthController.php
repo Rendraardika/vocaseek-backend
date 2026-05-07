@@ -118,9 +118,14 @@ class AuthController extends Controller
             }
         }
 
-        $user->tokens()->delete();
+        // Create the new token first, then clean up old ones.
+        // This avoids a table-lock deadlock that occurs when DELETE runs
+        // while another session is trying to INSERT (concurrent logins).
+        $newToken = $user->createToken('auth_token');
+        $token = $newToken->plainTextToken;
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Remove previous tokens for this user (keep only the one just created).
+        $user->tokens()->where('id', '!=', $newToken->accessToken->id)->delete();
 
         return response()->json([
             'status' => 'success',
