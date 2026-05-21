@@ -40,8 +40,8 @@ WORKDIR /var/www
 # Copy kode Laravel ke dalam container
 COPY . .
 
-# Jalankan instalasi library (opsional saat build)
-# RUN composer install
+# Instal dependensi PHP agar /var/www/vendor tersedia saat container start.
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 EXPOSE 8000
 
