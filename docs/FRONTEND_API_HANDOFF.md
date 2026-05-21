@@ -4,8 +4,8 @@ Dokumen ini dipakai sebagai pegangan tim frontend agar bisa langsung integrasi k
 
 ## Base URL
 
-- Local API: `http://localhost:8000/api`
-- Local Web OAuth redirect: `http://localhost:8000`
+- Local API: `http://localhost:8001/api`
+- Local Web OAuth redirect: `http://localhost:8001`
 
 ## Auth Model
 
@@ -96,13 +96,13 @@ Response:
       "industry": "Teknologi",
       "location": "Surabaya",
       "website_url": "https://contoh.com",
-      "logo_url": "http://localhost:8000/storage/company/logos/logo.png",
+      "logo_url": "http://localhost:8001/storage/company/logos/logo.png",
       "banner_url": null,
       "active_jobs_count": 3,
       "display": {
         "title": "PT Maju Teknologi",
         "subtitle": "Teknologi",
-        "image": "http://localhost:8000/storage/company/logos/logo.png",
+        "image": "http://localhost:8001/storage/company/logos/logo.png",
         "meta": {
           "location": "Surabaya",
           "website": "https://contoh.com",

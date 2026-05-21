@@ -7,14 +7,33 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Vocaseek Backend
+
+Backend adalah Laravel API yang secara default dijalankan lewat Docker Compose dari root project.
+
+URL lokal saat memakai Docker:
+
+- API: `http://localhost:8001/api`
+- Web backend: `http://localhost:8001`
+- Swagger shortcut: `http://localhost:8001/docs`
+
+Jika menjalankan backend tanpa Docker:
+
+```bash
+cd backend
+composer install
+php artisan migrate
+php artisan serve --host=0.0.0.0 --port=8001
+```
+
 ## Vocaseek Docs
 
 - Swagger shortcut: `/docs`
 - Browser docs page: `/docs/api`
 - Swagger UI page: `/docs/swagger`
-- API README: [docs/API_README.md](/c:/laragon/www/pocaseek/backend/docs/API_README.md)
-- OpenAPI spec: [docs/openapi.yaml](/c:/laragon/www/pocaseek/backend/docs/openapi.yaml)
-- Frontend handoff lama: [docs/FRONTEND_API_HANDOFF.md](/c:/laragon/www/pocaseek/backend/docs/FRONTEND_API_HANDOFF.md)
+- API README: [docs/API_README.md](docs/API_README.md)
+- OpenAPI spec: [docs/openapi.yaml](docs/openapi.yaml)
+- Frontend handoff lama: [docs/FRONTEND_API_HANDOFF.md](docs/FRONTEND_API_HANDOFF.md)
 
 ## About Laravel
 

@@ -4,7 +4,7 @@ Dokumen ini dibuat untuk membantu tim frontend memahami endpoint backend Vocasee
 
 ## Base URL
 
-- API lokal default: `http://localhost:8000/api`
+- API lokal default: `http://localhost:8001/api`
 - Frontend lokal saat ini: `http://localhost:5173`
 - Swagger UI: `/docs` atau `/docs/swagger`
 - OpenAPI raw: `/docs/openapi.yaml`
@@ -389,11 +389,11 @@ Ada beberapa hal yang perlu diketahui frontend sejak awal:
 
 ## File Rujukan
 
-- Spesifikasi OpenAPI: [openapi.yaml](/c:/laragon/www/pocaseek/backend/docs/openapi.yaml)
-- Route API: [api.php](/c:/laragon/www/pocaseek/backend/routes/api.php)
-- Auth controller: [AuthController.php](/c:/laragon/www/pocaseek/backend/app/Http/Controllers/Auth/AuthController.php)
-- Google controller: [GoogleController.php](/c:/laragon/www/pocaseek/backend/app/Http/Controllers/GoogleController.php)
-- Forgot password controller: [ForgotPasswordController.php](/c:/laragon/www/pocaseek/backend/app/Http/Controllers/ForgotPasswordController.php)
+- Spesifikasi OpenAPI: [openapi.yaml](openapi.yaml)
+- Route API: [api.php](../routes/api.php)
+- Auth controller: [AuthController.php](../app/Http/Controllers/Auth/AuthController.php)
+- Google controller: [GoogleController.php](../app/Http/Controllers/GoogleController.php)
+- Forgot password controller: [ForgotPasswordController.php](../app/Http/Controllers/ForgotPasswordController.php)
 
 ## Saran Pakai Untuk Frontend
 
