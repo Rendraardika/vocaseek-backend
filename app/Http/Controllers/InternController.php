@@ -809,6 +809,29 @@ class InternController extends Controller
         ]);
     }
 
+    public function withdrawApplication(int $id)
+    {
+        $user = Auth::user();
+
+        $application = JobApplication::where('application_id', $id)
+            ->where('user_id', $user->user_id)
+            ->first();
+
+        if (! $application) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lamaran tidak ditemukan.',
+            ], 404);
+        }
+
+        $application->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Pengunduran diri lamaran berhasil diproses.',
+        ]);
+    }
+
     private function pretestQuestions(): array
     {
         return config('pretest.questions', []);

@@ -90,6 +90,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/submit-test', [InternController::class, 'submitPreTest']);
         Route::post('/apply', [InternController::class, 'applyJob']);
         Route::get('/applications', [InternController::class, 'getMyApplications']);
+        Route::post('/applications/{id}/withdraw', [InternController::class, 'withdrawApplication']);
+        Route::delete('/applications/{id}', [InternController::class, 'withdrawApplication']);
     });
 
     
