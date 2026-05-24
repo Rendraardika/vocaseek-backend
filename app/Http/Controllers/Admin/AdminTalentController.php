@@ -148,6 +148,7 @@ class AdminTalentController extends Controller
         $birthPlace = $profile?->tempat_lahir;
         $birthDate = optional($profile?->tanggal_lahir)->format('d M Y');
         $birthDisplay = trim(collect([$birthPlace, $birthDate])->filter()->implode(', '));
+        $hasCompletedPretest = filled($profile?->test_finished_at);
 
         return [
             'id' => $user->user_id,
@@ -242,7 +243,7 @@ class AdminTalentController extends Controller
             ],
             'assessment' => [
                 'score' => $profile?->skor_pretest ?? 0,
-                'summary' => $answers->isNotEmpty()
+                'summary' => $hasCompletedPretest
                     ? 'Jawaban pre-test tersedia untuk direview oleh admin.'
                     : 'Belum ada hasil assessment untuk ditampilkan.',
                 'date' => optional($profile?->test_finished_at)->format('d M Y, H:i') ?? '-',
@@ -253,7 +254,7 @@ class AdminTalentController extends Controller
             'hasil_online_assessment' => [
                 'score' => $profile?->skor_pretest ?? 0,
                 'answers' => $answers,
-                'has_result' => $answers->isNotEmpty(),
+                'has_result' => $hasCompletedPretest,
             ],
             'documents' => [
                 'cv' => $cvUrl,
